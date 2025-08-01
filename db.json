@@ -1,52 +1,30 @@
 {
   "users": [
     {
-      "id": 1,
-      "username": "admin",
-      "password": "123456",
-      "role": "admin",
-      "name": "Nguyễn Văn Admin",
-      "email": "admin@s7mdrive.com",
-      "phone": "0123456789",
-      "avatar": "https://i.pravatar.cc/300?img=1"
-    },
-    {
-      "id": 2,
+      "id": "2",
       "username": "shipper1",
       "password": "123456",
       "role": "shipper",
       "name": "Nguyễn Hoàng Thuận",
+      "id_post_office": "1",
+      "area": "Xã Quốc Oai, Thành phố Hà Nội",
       "email": "shipper1@s7mdrive.com",
       "phone": "0987654321",
       "avatar": "https://i.pravatar.cc/300?img=2",
       "vehicle": "Honda Wave",
       "license_plate": "29A1-12345",
-      "status": "active",
-      "current_location": {
-        "latitude": 10.762622,
-        "longitude": 106.660172,
-        "address": "Quận 1, TP.HCM"
-      }
-    },
-    {
-      "id": 3,
-      "username": "shipper2",
-      "password": "123456",
-      "role": "shipper",
-      "name": "Trần Văn Bình",
-      "email": "shipper2@s7mdrive.com",
-      "phone": "0912345678",
-      "avatar": "https://i.pravatar.cc/300?img=3",
-      "vehicle": "Yamaha Sirius",
-      "license_plate": "29B2-67890",
-      "status": "busy",
-      "current_location": {
-        "latitude": 10.772622,
-        "longitude": 106.670172,
-        "address": "Quận 3, TP.HCM"
-      }
+      "status": 0
     }
   ],
+  "post_offices": [
+    {
+      "id": "1",
+      "province": "Hà Nội",
+      "address": "Cao đẳng FPT Polytechnic, Phố Trịnh Văn Bô, Quận Nam Từ Liêm, Hà Nội",
+      "latitude": 21.0380074,
+      "longitude": 105.7468965
+    }
+    ],
   "orders": [
     {
       "id": 1,

@@ -197,7 +197,8 @@ const DashboardScreen = () => {
               onPress={() => {}}
             />
             <TouchableOpacity
-              style={[styles.quickActionButton, styles.checkInButton]}>
+              style={[styles.quickActionButton, styles.checkInButton]}
+              onPress={() => navigation.navigate('CheckIn')}>
               <LinearGradient
                 colors={['#4CAF50', '#66BB6A']}
                 style={styles.checkInGradient}>

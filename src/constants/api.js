@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Thay đổi IP này theo IP máy tính của bạn
-  BASE_URL: 'http://192.168.1.163:3000',
+  BASE_URL: 'http://192.168.100.120:3000',
   // Cho simulator/emulator
   LOCAL_URL: 'http://localhost:3000',
 

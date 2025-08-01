@@ -39,6 +39,7 @@ const LoginScreen = () => {
         );
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoading(false);

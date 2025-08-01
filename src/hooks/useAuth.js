@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useState, useEffect} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {authService} from '../services';
+import {getUserData, saveUserData, removeUserData} from '../utils/userStorage';
 
 const AuthContext = createContext(undefined);
 
@@ -14,10 +14,10 @@ export const AuthProvider = ({children}) => {
 
   const checkAuthStatus = async () => {
     try {
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (userDataString) {
-        const userData = JSON.parse(userDataString);
+      const userData = await getUserData();
+      if (userData) {
         setUser(userData);
+        console.log('Đã khôi phục thông tin user từ AsyncStorage:', userData);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -31,8 +31,32 @@ export const AuthProvider = ({children}) => {
       const response = await authService.login({username, password});
 
       if (response.success && response.user) {
-        setUser(response.user);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        // Lưu toàn bộ thông tin user vào AsyncStorage
+        const userData = {
+          ...response.user,
+          loginTime: new Date().toISOString(), // Thêm thời gian đăng nhập
+        };
+        
+        setUser(userData);
+        await saveUserData(userData);
+        
+        // Log thông tin user sau khi đăng nhập thành công
+        console.log('=== THÔNG TIN USER ĐÃ ĐĂNG NHẬP ===');
+        console.log('ID:', userData.id);
+        console.log('Username:', userData.username);
+        console.log('Tên:', userData.name);
+        console.log('Email:', userData.email);
+        console.log('Số điện thoại:', userData.phone);
+        console.log('Vai trò:', userData.role);
+        console.log('Khu vực:', userData.area);
+        console.log('Phương tiện:', userData.vehicle);
+        console.log('Biển số xe:', userData.license_plate);
+        console.log('Trạng thái:', userData.status === 0 ? 'Hoạt động' : 'Không hoạt động');
+        console.log('ID Bưu cục:', userData.id_post_office);
+        console.log('Thời gian đăng nhập:', new Date(userData.loginTime).toLocaleString('vi-VN'));
+        console.log('Password:', userData.password);
+        console.log('=====================================');
+        
         return true;
       }
 
@@ -45,8 +69,9 @@ export const AuthProvider = ({children}) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('userData');
+      await removeUserData();
       setUser(null);
+      console.log('Đã đăng xuất và xóa thông tin user');
     } catch (error) {
       console.error('Logout error:', error);
     }

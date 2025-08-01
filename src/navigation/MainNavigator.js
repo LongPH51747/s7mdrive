@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Screen imports
 import DashboardScreen from '../screens/main/DashboardScreen';
+import CheckInScreen from '../screens/main/CheckInScreen';
 import OrderListScreen from '../screens/orders/OrderListScreen';
 import OrderDetailScreen from '../screens/orders/OrderDetailScreen';
 import CreateOrderScreen from '../screens/orders/CreateOrderScreen';
@@ -21,6 +22,15 @@ const OrderNavigator = () => {
       <OrderStack.Screen name="OrderList" component={OrderListScreen} />
       <OrderStack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <OrderStack.Screen name="CreateOrder" component={CreateOrderScreen} />
+    </OrderStack.Navigator>
+  );
+};
+
+const DashboardNavigator = () => {
+  return (
+    <OrderStack.Navigator screenOptions={{headerShown: false}}>
+      <OrderStack.Screen name="DashboardMain" component={DashboardScreen} />
+      <OrderStack.Screen name="CheckIn" component={CheckInScreen} />
     </OrderStack.Navigator>
   );
 };
@@ -68,7 +78,7 @@ const MainNavigator = () => {
       })}>
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={DashboardNavigator}
         options={{
           tabBarLabel: 'Trang chủ',
         }}

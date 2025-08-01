@@ -15,12 +15,10 @@ class AuthService {
       );
 
       if (foundUser) {
-        // Loại bỏ password khỏi response
-        const {password, ...userWithoutPassword} = foundUser;
-
+        // Trả về toàn bộ thông tin user bao gồm cả password
         return {
           success: true,
-          user: userWithoutPassword,
+          user: foundUser,
         };
       } else {
         return {
