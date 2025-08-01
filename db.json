@@ -1,0 +1,231 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "123456",
+      "role": "admin",
+      "name": "Nguyễn Văn Admin",
+      "email": "admin@s7mdrive.com",
+      "phone": "0123456789",
+      "avatar": "https://i.pravatar.cc/300?img=1"
+    },
+    {
+      "id": 2,
+      "username": "shipper1",
+      "password": "123456",
+      "role": "shipper",
+      "name": "Nguyễn Hoàng Thuận",
+      "email": "shipper1@s7mdrive.com",
+      "phone": "0987654321",
+      "avatar": "https://i.pravatar.cc/300?img=2",
+      "vehicle": "Honda Wave",
+      "license_plate": "29A1-12345",
+      "status": "active",
+      "current_location": {
+        "latitude": 10.762622,
+        "longitude": 106.660172,
+        "address": "Quận 1, TP.HCM"
+      }
+    },
+    {
+      "id": 3,
+      "username": "shipper2",
+      "password": "123456",
+      "role": "shipper",
+      "name": "Trần Văn Bình",
+      "email": "shipper2@s7mdrive.com",
+      "phone": "0912345678",
+      "avatar": "https://i.pravatar.cc/300?img=3",
+      "vehicle": "Yamaha Sirius",
+      "license_plate": "29B2-67890",
+      "status": "busy",
+      "current_location": {
+        "latitude": 10.772622,
+        "longitude": 106.670172,
+        "address": "Quận 3, TP.HCM"
+      }
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "order_code": "S7M001",
+      "customer_name": "Lê Thị Lan",
+      "customer_phone": "0901234567",
+      "pickup_address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
+      "pickup_location": {
+        "latitude": 10.762622,
+        "longitude": 106.660172
+      },
+      "delivery_address": "456 Lê Lợi, Quận 3, TP.HCM",
+      "delivery_location": {
+        "latitude": 10.772622,
+        "longitude": 106.670172
+      },
+      "items": [
+        {
+          "name": "Áo sơ mi",
+          "quantity": 2,
+          "value": 500000
+        },
+        {
+          "name": "Quần jean", 
+          "quantity": 1,
+          "value": 300000
+        }
+      ],
+      "total_value": 800000,
+      "shipping_fee": 25000,
+      "status": "pending",
+      "created_at": "2025-01-08T09:00:00.000Z",
+      "updated_at": "2025-01-08T09:00:00.000Z",
+      "notes": "Giao hàng trong giờ hành chính",
+      "payment_method": "cod",
+      "shipper_id": null,
+      "estimated_time": 30
+    },
+    {
+      "id": 2,
+      "order_code": "S7M002",
+      "customer_name": "Phạm Văn Cường",
+      "customer_phone": "0987123456",
+      "pickup_address": "789 Trần Hưng Đạo, Quận 5, TP.HCM",
+      "pickup_location": {
+        "latitude": 10.756622,
+        "longitude": 106.650172
+      },
+      "delivery_address": "321 Nguyễn Thị Minh Khai, Quận 1, TP.HCM",
+      "delivery_location": {
+        "latitude": 10.765622,
+        "longitude": 106.665172
+      },
+      "items": [
+        {
+          "name": "Điện thoại iPhone",
+          "quantity": 1,
+          "value": 20000000
+        }
+      ],
+      "total_value": 20000000,
+      "shipping_fee": 50000,
+      "status": "confirmed",
+      "created_at": "2025-01-08T10:30:00.000Z",
+      "updated_at": "2025-01-08T11:00:00.000Z",
+      "notes": "Hàng giá trị cao, cần xác nhận kỹ",
+      "payment_method": "bank_transfer",
+      "shipper_id": 2,
+      "estimated_time": 45
+    },
+    {
+      "id": 3,
+      "order_code": "S7M003",
+      "customer_name": "Hoàng Thị Mai",
+      "customer_phone": "0123987654",
+      "pickup_address": "159 Võ Văn Tần, Quận 3, TP.HCM",
+      "pickup_location": {
+        "latitude": 10.779622,
+        "longitude": 106.695172
+      },
+      "delivery_address": "753 Cách Mạng Tháng 8, Quận 10, TP.HCM",
+      "delivery_location": {
+        "latitude": 10.772622,
+        "longitude": 106.665172
+      },
+      "items": [
+        {
+          "name": "Bánh sinh nhật",
+          "quantity": 1,
+          "value": 350000
+        }
+      ],
+      "total_value": 350000,
+      "shipping_fee": 30000,
+      "status": "delivering",
+      "created_at": "2025-01-08T08:15:00.000Z",
+      "updated_at": "2025-01-08T12:30:00.000Z",
+      "notes": "Giao trước 2h chiều",
+      "payment_method": "cod",
+      "shipper_id": 2,
+      "estimated_time": 25
+    },
+    {
+      "id": 4,
+      "order_code": "S7M004",
+      "customer_name": "Trần Minh Khôi",
+      "customer_phone": "0936547821",
+      "pickup_address": "267 Hai Bà Trưng, Quận 1, TP.HCM",
+      "pickup_location": {
+        "latitude": 10.762622,
+        "longitude": 106.660172
+      },
+      "delivery_address": "89 Nguyễn Đình Chiểu, Quận 3, TP.HCM",
+      "delivery_location": {
+        "latitude": 10.779622,
+        "longitude": 106.685172
+      },
+      "items": [
+        {
+          "name": "Laptop Dell",
+          "quantity": 1,
+          "value": 15000000
+        }
+      ],
+      "total_value": 15000000,
+      "shipping_fee": 40000,
+      "status": "completed",
+      "created_at": "2025-01-07T14:20:00.000Z",
+      "updated_at": "2025-01-07T16:45:00.000Z",
+      "completed_at": "2025-01-07T16:45:00.000Z",
+      "notes": "Đã giao thành công",
+      "payment_method": "cod",
+      "shipper_id": 3,
+      "estimated_time": 35,
+      "rating": 5,
+      "feedback": "Giao hàng nhanh, shipper thân thiện"
+    }
+  ],
+  "statistics": {
+    "today": {
+      "total_orders": 4,
+      "completed": 1,
+      "delivering": 1,
+      "pending": 2,
+      "revenue": 145000
+    },
+    "this_week": {
+      "total_orders": 12,
+      "completed": 8,
+      "delivering": 2,
+      "pending": 2,
+      "revenue": 520000
+    },
+    "this_month": {
+      "total_orders": 104,
+      "completed": 89,
+      "delivering": 8,
+      "pending": 7,
+      "revenue": 2850000
+    }
+  },
+  "notifications": [
+    {
+      "id": 1,
+      "title": "Đơn hàng mới",
+      "message": "Bạn có đơn hàng mới #S7M001 cần xử lý",
+      "type": "new_order",
+      "read": false,
+      "created_at": "2025-01-08T09:00:00.000Z",
+      "user_id": 1
+    },
+    {
+      "id": 2,
+      "title": "Hoàn thành giao hàng",
+      "message": "Đơn hàng #S7M004 đã được giao thành công",
+      "type": "order_completed",
+      "read": true,
+      "created_at": "2025-01-07T16:45:00.000Z",
+      "user_id": 1
+    }
+  ]
+}
