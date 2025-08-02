@@ -120,13 +120,17 @@ const DashboardScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thống kê hôm nay</Text>
           <View style={styles.statsGrid}>
-            <StatCard
-              title="Chuyến đi"
-              value={statistics?.today.total_orders || 0}
-              subtitle="đơn"
-              icon="local-shipping"
-              color="#4CAF50"
-            />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('OrderList')}
+              style={{flex: 1}}>
+              <StatCard
+                title="Chuyến đi"
+                value={statistics?.today.total_orders || 0}
+                subtitle="đơn"
+                icon="local-shipping"
+                color="#4CAF50"
+              />
+            </TouchableOpacity>
             <StatCard
               title="Năng suất"
               value={statistics?.today.completed || 0}

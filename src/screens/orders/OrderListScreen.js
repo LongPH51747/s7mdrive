@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -7,88 +7,74 @@ import {
   TouchableOpacity,
   StatusBar,
   RefreshControl,
+  Alert,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useNavigation} from '@react-navigation/native';
 import {useAuth} from '../../hooks/useAuth';
+import {useNavigation} from '@react-navigation/native';
 import {orderService} from '../../services';
 
 const OrderListScreen = () => {
-  const navigation = useNavigation();
   const {user} = useAuth();
+  const navigation = useNavigation();
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrdersByArea();
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchOrdersByArea = async () => {
     try {
-      let orders = [];
-
-      if (user?.role === 'shipper') {
-        // Lấy đơn hàng của shipper và đơn hàng chờ xử lý
-        const shipperOrders = await orderService.getOrdersByShipper(user.id);
-        const pendingOrders = await orderService.getPendingOrders();
-
-        // Gộp và loại bỏ duplicate
-        const allOrders = [...shipperOrders, ...pendingOrders];
-        orders = allOrders.filter(
-          (order, index, self) =>
-            index === self.findIndex(o => o.id === order.id),
-        );
-      } else {
-        // Admin xem tất cả đơn hàng
-        orders = await orderService.getOrders();
+      setLoading(true);
+      setError(null);
+      
+      if (!user?.area) {
+        setError('Không tìm thấy thông tin khu vực của bạn');
+        return;
       }
 
-      setOrders(orders);
+      // Parse area string: "Xã Quốc Oai, Thành phố Hà Nội" -> ward: "Quốc Oai", province: "Hà Nội"
+      const areaParts = user.area.split(',').map(part => part.trim());
+      if (areaParts.length < 2) {
+        setError('Định dạng khu vực không đúng');
+        return;
+      }
+
+      // Extract ward and province from formatted strings
+      const wardPart = areaParts[0]; // "Xã Quốc Oai"
+      const provincePart = areaParts[1]; // "Thành phố Hà Nội"
+      
+      // Remove prefixes like "Xã", "Thành phố", "Tỉnh"
+      const ward = wardPart.replace(/^(Xã|Phường|Quận|Huyện)\s+/, '');
+      const province = provincePart.replace(/^(Thành phố|Tỉnh)\s+/, '');
+
+      console.log('Fetching orders for area:', {ward, province});
+      
+      const data = await orderService.getOrdersByArea(province, ward);
+      
+      // Lọc chỉ những đơn hàng có trạng thái "Đã xác nhận"
+      const confirmedOrders = data.filter(order => order.status === 'Đã xác nhận');
+      setOrders(confirmedOrders);
+      
+      console.log('Orders fetched:', data.length, 'Confirmed orders:', confirmedOrders.length);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Error fetching orders by area:', error);
+      setError('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchOrders();
+    await fetchOrdersByArea();
     setRefreshing(false);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return '#FF9800';
-      case 'confirmed':
-        return '#2196F3';
-      case 'delivering':
-        return '#FF5722';
-      case 'completed':
-        return '#4CAF50';
-      case 'cancelled':
-        return '#F44336';
-      default:
-        return '#999';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'Chờ xử lý';
-      case 'confirmed':
-        return 'Đã xác nhận';
-      case 'delivering':
-        return 'Đang giao';
-      case 'completed':
-        return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
-      default:
-        return status;
-    }
   };
 
   const formatCurrency = (amount) => {
@@ -98,92 +84,98 @@ const OrderListScreen = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const handleCallPhone = (phoneNumber) => {
+    if (phoneNumber) {
+      const phoneUrl = `tel:${phoneNumber}`;
+      Linking.canOpenURL(phoneUrl)
+        .then(supported => {
+          if (supported) {
+            return Linking.openURL(phoneUrl);
+          } else {
+            Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
+          }
+        })
+        .catch(err => {
+          console.error('Error opening phone app:', err);
+          Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
+        });
+    }
   };
 
-  const filteredOrders = orders.filter(order => {
-    if (filter === 'all') return true;
-    return order.status === filter;
-  });
-
-  const FilterButton = ({title, value, active}) => (
+  const renderOrderItem = ({item}) => (
     <TouchableOpacity
-      style={[styles.filterButton, active && styles.filterButtonActive]}
-      onPress={() => setFilter(value)}>
-      <Text
-        style={[
-          styles.filterButtonText,
-          active && styles.filterButtonTextActive,
-        ]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const OrderCard = ({item}) => (
-    <TouchableOpacity
-      style={styles.orderCard}
-      onPress={() => navigation.navigate('OrderDetail', {orderId: item.id})}>
+      style={styles.orderItem}
+      onPress={() => navigation.navigate('OrderDetail', {orderId: item._id})}>
       <View style={styles.orderHeader}>
-        <Text style={styles.orderCode}>{item.order_code}</Text>
-        <View
-          style={[
-            styles.statusBadge,
-            {backgroundColor: getStatusColor(item.status)},
-          ]}>
-          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        <View style={styles.orderInfo}>
+          <Text style={styles.customerName}>
+            {item.id_address?.fullName || 'Không có tên'}
+          </Text>
+          <Text style={styles.orderStatus}>{item.status}</Text>
         </View>
+        <Icon name="chevron-right" size={24} color="#666" />
       </View>
 
-      <View style={styles.orderInfo}>
-        <View style={styles.orderInfoRow}>
-          <Icon name="person" size={16} color="#666" />
-          <Text style={styles.orderInfoText}>{item.customer_name}</Text>
-        </View>
-        <View style={styles.orderInfoRow}>
-          <Icon name="phone" size={16} color="#666" />
-          <Text style={styles.orderInfoText}>{item.customer_phone}</Text>
-        </View>
-      </View>
-
-      <View style={styles.addressContainer}>
-        <View style={styles.addressRow}>
-          <Icon name="my-location" size={16} color="#FF6B35" />
-          <Text style={styles.addressText} numberOfLines={1}>
-            {item.pickup_address}
+      <View style={styles.orderDetails}>
+        <View style={styles.detailRow}>
+          <Icon name="location-on" size={16} color="#666" />
+          <Text style={styles.detailText} numberOfLines={2}>
+            {item.id_address?.addressDetail || 'Không có địa chỉ'}
           </Text>
         </View>
-        <View style={styles.addressDivider}>
-          <View style={styles.dottedLine} />
-        </View>
-        <View style={styles.addressRow}>
-          <Icon name="location-on" size={16} color="#4CAF50" />
-          <Text style={styles.addressText} numberOfLines={1}>
-            {item.delivery_address}
+
+                 <View style={styles.detailRow}>
+           <Icon name="phone" size={16} color="#666" />
+           <TouchableOpacity
+             onPress={() => handleCallPhone(item.id_address?.phone_number)}
+             style={styles.phoneContainer}>
+             <Text style={[styles.detailText, styles.phoneText]}>
+               {item.id_address?.phone_number || 'Không có số điện thoại'}
+             </Text>
+             {item.id_address?.phone_number && (
+               <Icon name="call" size={16} color="#4CAF50" style={styles.callIcon} />
+             )}
+           </TouchableOpacity>
+         </View>
+
+        <View style={styles.detailRow}>
+          <Icon name="account-balance-wallet" size={16} color="#666" />
+          <Text style={styles.amountText}>
+            Thu hộ: {formatCurrency(item.total_amount)}
           </Text>
         </View>
       </View>
 
       <View style={styles.orderFooter}>
-        <View style={styles.orderFooterLeft}>
-          <Text style={styles.orderValue}>
-            {formatCurrency(item.total_value)}
-          </Text>
-          <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
-        </View>
-        <View style={styles.orderFooterRight}>
-          <Text style={styles.estimatedTime}>~{item.estimated_time} phút</Text>
-        </View>
+        <Text style={styles.orderDate}>
+          {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+        </Text>
+        <Text style={styles.orderCode}>
+          #{item._id.slice(-8).toUpperCase()}
+        </Text>
       </View>
     </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Icon name="local-shipping" size={64} color="#ccc" />
+      <Text style={styles.emptyStateTitle}>Không có đơn hàng</Text>
+      <Text style={styles.emptyStateSubtitle}>
+        Hiện tại không có đơn hàng nào đã xác nhận trong khu vực của bạn
+      </Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyState}>
+      <Icon name="error-outline" size={64} color="#f44336" />
+      <Text style={styles.emptyStateTitle}>Có lỗi xảy ra</Text>
+      <Text style={styles.emptyStateSubtitle}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={fetchOrdersByArea}>
+        <Text style={styles.retryButtonText}>Thử lại</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -191,56 +183,51 @@ const OrderListScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
 
       {/* Header */}
-      <LinearGradient colors={['#FF6B35', '#FF8E53']} style={styles.header}>
+      <LinearGradient
+        colors={['#FF6B35', '#FF8E53']}
+        style={styles.header}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Danh sách đơn hàng</Text>
-          {user?.role === 'admin' && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => navigation.navigate('CreateOrder')}>
-              <Icon name="add" size={24} color="white" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+                     <Text style={styles.headerTitle}>Đơn hàng đã xác nhận</Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.areaText}>{user?.area}</Text>
+          </View>
         </View>
       </LinearGradient>
 
-      {/* Filter buttons */}
-      <View style={styles.filterContainer}>
-        <FilterButton title="Tất cả" value="all" active={filter === 'all'} />
-        <FilterButton
-          title="Chờ xử lý"
-          value="pending"
-          active={filter === 'pending'}
+      {/* Content */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+          <Text style={styles.loadingText}>Đang tải danh sách đơn hàng...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={orders}
+          renderItem={renderOrderItem}
+          keyExtractor={item => item._id}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={error ? renderErrorState : renderEmptyState}
+                     ListHeaderComponent={
+             <View style={styles.listHeader}>
+               <Text style={styles.listHeaderTitle}>
+                 Tổng cộng: {orders.length} đơn hàng đã xác nhận
+               </Text>
+             </View>
+           }
         />
-        <FilterButton
-          title="Đang giao"
-          value="delivering"
-          active={filter === 'delivering'}
-        />
-        <FilterButton
-          title="Hoàn thành"
-          value="completed"
-          active={filter === 'completed'}
-        />
-      </View>
-
-      {/* Orders list */}
-      <FlatList
-        data={filteredOrders}
-        keyExtractor={item => item.id.toString()}
-        renderItem={OrderCard}
-        style={styles.ordersList}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="assignment" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Không có đơn hàng nào</Text>
-          </View>
-        }
-      />
+      )}
     </View>
   );
 };
@@ -257,65 +244,48 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 5,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    marginTop: -10,
-    marginBottom: 10,
-    borderRadius: 15,
-    padding: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  filterButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    textAlign: 'center',
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  areaText: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.9,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    padding: 15,
+  },
+  listHeader: {
+    backgroundColor: 'white',
+    padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    marginBottom: 10,
   },
-  filterButtonActive: {
-    backgroundColor: '#FF6B35',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  filterButtonTextActive: {
-    color: 'white',
+  listHeaderTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
   },
-  ordersList: {
-    flex: 1,
-    paddingHorizontal: 15,
-  },
-  orderCard: {
+  orderItem: {
     backgroundColor: 'white',
-    borderRadius: 15,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
@@ -333,98 +303,110 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  orderCode: {
+  orderInfo: {
+    flex: 1,
+  },
+  customerName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 2,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: 'white',
+  orderStatus: {
     fontSize: 12,
-    fontWeight: 'bold',
+    color: '#4CAF50',
+    fontWeight: '500',
   },
-  orderInfo: {
-    marginBottom: 15,
+  orderDetails: {
+    marginBottom: 10,
   },
-  orderInfoRow: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
   },
-  orderInfoText: {
-    marginLeft: 8,
+  detailText: {
     fontSize: 14,
     color: '#666',
-  },
-  addressContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addressText: {
     marginLeft: 8,
-    fontSize: 14,
-    color: '#333',
     flex: 1,
   },
-  addressDivider: {
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  dottedLine: {
-    width: 2,
-    height: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#ccc',
+  amountText: {
+    fontSize: 14,
+    color: '#FF6B35',
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  orderFooterLeft: {
-    flex: 1,
-  },
-  orderValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 2,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   orderDate: {
     fontSize: 12,
     color: '#999',
   },
-  orderFooterRight: {
-    alignItems: 'flex-end',
-  },
-  estimatedTime: {
-    fontSize: 14,
-    color: '#FF6B35',
+  orderCode: {
+    fontSize: 12,
+    color: '#666',
     fontWeight: '500',
   },
-  emptyContainer: {
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingVertical: 50,
   },
-  emptyText: {
-    fontSize: 16,
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
     color: '#999',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
     marginTop: 15,
   },
+  retryButton: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 15,
+  },
+     retryButtonText: {
+     color: 'white',
+     fontSize: 14,
+     fontWeight: 'bold',
+   },
+   phoneContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     flex: 1,
+   },
+   phoneText: {
+     color: '#4CAF50',
+     textDecorationLine: 'underline',
+   },
+   callIcon: {
+     marginLeft: 8,
+   },
 });
 
 export default OrderListScreen;

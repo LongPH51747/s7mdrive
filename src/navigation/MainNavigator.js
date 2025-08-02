@@ -31,6 +31,7 @@ const DashboardNavigator = () => {
     <OrderStack.Navigator screenOptions={{headerShown: false}}>
       <OrderStack.Screen name="DashboardMain" component={DashboardScreen} />
       <OrderStack.Screen name="CheckIn" component={CheckInScreen} />
+      <OrderStack.Screen name="OrderList" component={OrderListScreen} />
     </OrderStack.Navigator>
   );
 };

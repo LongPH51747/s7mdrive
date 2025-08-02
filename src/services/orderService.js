@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import axios from 'axios';
 import {API_CONFIG} from '../constants/api';
 
 class OrderService {
@@ -175,6 +176,24 @@ class OrderService {
       return await this.getOrders({status: 'pending'});
     } catch (error) {
       console.error('Get pending orders error:', error);
+      return [];
+    }
+  }
+
+  // Lấy đơn hàng theo khu vực (province và ward)
+  async getOrdersByArea(province, ward) {
+    try {
+      const url = `https://92f8fa709052.ngrok-free.app/api/order/filterOrderAddressByCityAndWard?province=${encodeURIComponent(province)}&ward=${encodeURIComponent(ward)}`;
+      
+      const response = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data || [];
+    } catch (error) {
+      console.error('Get orders by area error:', error);
       return [];
     }
   }
