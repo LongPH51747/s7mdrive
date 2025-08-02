@@ -13,7 +13,25 @@
       "avatar": "https://i.pravatar.cc/300?img=2",
       "vehicle": "Honda Wave",
       "license_plate": "29A1-12345",
-      "status": 0
+      "status": 0,
+      "check_in": [
+        {
+          "date": "2025-08-02",
+          "time": "18:10:03"
+        },
+        {
+          "date": "2025-08-01",
+          "time": "18:10:03"
+        },
+        {
+          "date": "2025-07-31",
+          "time": "18:10:03"
+        },
+        {
+          "date": "2025-07-30",
+          "time": "18:10:03"
+        }
+      ]
     }
   ],
   "post_offices": [
@@ -24,7 +42,7 @@
       "latitude": 21.0380074,
       "longitude": 105.7468965
     }
-    ],
+  ],
   "orders": [
     {
       "id": 1,
@@ -48,7 +66,7 @@
           "value": 500000
         },
         {
-          "name": "Quần jean", 
+          "name": "Quần jean",
           "quantity": 1,
           "value": 300000
         }

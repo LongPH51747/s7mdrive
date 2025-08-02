@@ -16,14 +16,17 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useNavigation} from '@react-navigation/native';
 import {checkDistanceToPostOffice, getPostOfficeInfo} from '../../services/locationService';
+import {saveCheckIn, hasCheckedInToday, getCheckedInDaysInMonth} from '../../services/checkInService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CheckInScreen = () => {
   const {user} = useAuth();
   const navigation = useNavigation();
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [checkInTime, setCheckInTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [checkedInDays, setCheckedInDays] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
 
 
 
@@ -38,9 +41,55 @@ const CheckInScreen = () => {
       id_post_office: user?.id_post_office
     });
     console.log('📱 Trạng thái ban đầu:', {
-      isCheckedIn,
-      checkInTime: checkInTime?.toLocaleString('vi-VN') || 'Chưa check-in'
+      isCheckedIn
     });
+    
+    // Kiểm tra trạng thái check-in hôm nay
+    const checkTodayStatus = async () => {
+      if (user?.id) {
+        console.log('🔍 Kiểm tra trạng thái check-in hôm nay...');
+        const hasCheckedIn = await hasCheckedInToday(user.id);
+        setIsCheckedIn(hasCheckedIn);
+        
+        if (hasCheckedIn) {
+          console.log('✅ User đã check-in hôm nay');
+          // TODO: Lấy thời gian check-in từ database
+        }
+      }
+    };
+    
+    // Lấy danh sách ngày đã check-in trong tháng
+    const loadCheckedInDays = async () => {
+      if (user?.id) {
+        const checkedDays = await getCheckedInDaysInMonth(
+          user.id, 
+          selectedMonth.getFullYear(), 
+          selectedMonth.getMonth()
+        );
+        setCheckedInDays(checkedDays);
+        console.log('📅 Ngày đã check-in trong tháng:', checkedDays);
+      }
+    };
+    
+    checkTodayStatus();
+    loadCheckedInDays();
+    
+    // Kiểm tra và reset trạng thái check-in khi sang ngày mới
+    const checkAndResetStatus = async () => {
+      try {
+        const lastCheckInDate = await AsyncStorage.getItem('lastCheckInDate');
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        if (lastCheckInDate && lastCheckInDate !== todayStr) {
+          console.log('📅 Sang ngày mới, reset trạng thái check-in');
+          setIsCheckedIn(false);
+        }
+      } catch (error) {
+        console.error('❌ Lỗi khi kiểm tra reset status:', error);
+      }
+    };
+    
+    checkAndResetStatus();
     
     // Cập nhật thời gian hiện tại mỗi giây
     const timer = setInterval(() => {
@@ -51,7 +100,7 @@ const CheckInScreen = () => {
       console.log('📱 === CHECK-IN SCREEN UNMOUNTED ===');
       clearInterval(timer);
     };
-  }, []);
+  }, [user?.id, selectedMonth]);
 
 
 
@@ -70,6 +119,28 @@ const CheckInScreen = () => {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  // Hàm chuyển tháng trước
+  const goToPreviousMonth = () => {
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+    setSelectedMonth(newMonth);
+    console.log('📅 Chuyển đến tháng trước:', newMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }));
+  };
+
+  // Hàm chuyển tháng sau
+  const goToNextMonth = () => {
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+    setSelectedMonth(newMonth);
+    console.log('📅 Chuyển đến tháng sau:', newMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }));
+  };
+
+  // Hàm về tháng hiện tại
+  const goToCurrentMonth = () => {
+    setSelectedMonth(new Date());
+    console.log('📅 Về tháng hiện tại');
   };
 
   const handleCheckIn = async () => {
@@ -118,22 +189,37 @@ const CheckInScreen = () => {
         return;
       }
 
-      // Giả lập API call
-      console.log('🚀 Khoảng cách hợp lệ, đang gửi yêu cầu check-in...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Lưu check-in vào database
+      console.log('🚀 Khoảng cách hợp lệ, đang lưu check-in...');
       
       const checkInTime = new Date();
+      
+      console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
+      
+      const saveResult = await saveCheckIn(user?.id);
+      
+      if (!saveResult.success) {
+        throw new Error(`Lỗi khi lưu check-in: ${saveResult.error}`);
+      }
+      
       console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
       
       setIsCheckedIn(true);
       setCheckInTime(checkInTime);
+      
+      // Cập nhật danh sách ngày đã check-in
+      const today = new Date();
+      const newCheckedInDays = [...checkedInDays, today.getDate()];
+      setCheckedInDays(newCheckedInDays);
+      
+      // Lưu ngày check-in vào AsyncStorage
+      await AsyncStorage.setItem('lastCheckInDate', new Date().toISOString().split('T')[0]);
       
       console.log('✅ Check-in thành công!');
       console.log('✅ Thông tin check-in:');
       console.log('   - Thời gian:', checkInTime.toLocaleString('vi-VN'));
       console.log('   - Địa điểm:', locationResult.postOffice.address);
       console.log('   - Khoảng cách:', locationResult.distance.toFixed(2), 'm');
-      console.log('   - Vị trí GPS:', locationResult.currentLocation);
       
       Alert.alert(
         'Check-in thành công!',
@@ -150,79 +236,22 @@ const CheckInScreen = () => {
     }
   };
 
-  const handleCheckOut = async () => {
-    console.log('🚪 === BẮT ĐẦU QUÁ TRÌNH CHECK-OUT ===');
-    console.log('🚪 Thời gian bắt đầu:', new Date().toLocaleString('vi-VN'));
-    console.log('🚪 Thời gian check-in trước đó:', checkInTime?.toLocaleString('vi-VN'));
-    
-    Alert.alert(
-      'Xác nhận Check-out',
-      'Bạn có chắc muốn check-out?',
-      [
-        {text: 'Hủy', style: 'cancel'},
-        {
-          text: 'Check-out',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('🚪 User xác nhận check-out');
-            setLoading(true);
-            try {
-              console.log('🚪 Đang gửi yêu cầu check-out...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              const checkOutTime = new Date();
-              const workDuration = checkInTime ? checkOutTime - checkInTime : 0;
-              const workHours = Math.floor(workDuration / (1000 * 60 * 60));
-              const workMinutes = Math.floor((workDuration % (1000 * 60 * 60)) / (1000 * 60));
-              
-              console.log('🚪 Thời gian check-out:', checkOutTime.toLocaleString('vi-VN'));
-              console.log('🚪 Thời gian làm việc:', `${workHours}h ${workMinutes}m`);
-              
-              setIsCheckedIn(false);
-              setCheckInTime(null);
-              
-              console.log('✅ Check-out thành công!');
-              console.log('✅ Thông tin check-out:');
-              console.log('   - Thời gian check-out:', checkOutTime.toLocaleString('vi-VN'));
-              console.log('   - Thời gian làm việc:', `${workHours}h ${workMinutes}m`);
-              console.log('   - Tổng thời gian (ms):', workDuration);
-              
-              Alert.alert('Thành công', 'Đã check-out thành công!');
-            } catch (error) {
-              console.error('❌ Lỗi khi check-out:', error);
-              Alert.alert('Lỗi', 'Không thể check-out. Vui lòng thử lại.');
-            } finally {
-              setLoading(false);
-              console.log('🚪 === KẾT THÚC QUÁ TRÌNH CHECK-OUT ===\n');
-            }
-          },
-        },
-      ]
-    );
-  };
 
-  const calculateWorkTime = () => {
-    if (!checkInTime) return '00:00:00';
-    
-    const now = new Date();
-    const diff = now - checkInTime;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
+
+
 
   const generateCalendarDays = () => {
     const today = new Date();
+    const selectedMonthYear = selectedMonth.getFullYear();
+    const selectedMonthMonth = selectedMonth.getMonth();
+    const currentDay = today.getDate();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    const currentDay = today.getDate();
     
-    // Lấy ngày đầu tiên của tháng
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    // Lấy ngày cuối cùng của tháng
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    // Lấy ngày đầu tiên của tháng được chọn
+    const firstDayOfMonth = new Date(selectedMonthYear, selectedMonthMonth, 1);
+    // Lấy ngày cuối cùng của tháng được chọn
+    const lastDayOfMonth = new Date(selectedMonthYear, selectedMonthMonth + 1, 0);
     
     // Ngày trong tuần của ngày đầu tiên (0 = Chủ nhật, 1 = Thứ 2, ...)
     const firstDayWeekday = firstDayOfMonth.getDay();
@@ -237,27 +266,41 @@ const CheckInScreen = () => {
     
     // Thêm các ngày trong tháng
     for (let day = 1; day <= totalDays; day++) {
-      const isToday = day === currentDay;
-      const isCheckedInDay = isCheckedIn && day === currentDay;
+      const isToday = day === currentDay && 
+                     selectedMonthMonth === currentMonth && 
+                     selectedMonthYear === currentYear;
+      const isCheckedInDay = checkedInDays.includes(day);
+      const isTodayCheckedIn = isToday && isCheckedIn;
       
       days.push(
         <View key={day} style={[
           styles.calendarDay,
           isToday && styles.today,
-          isCheckedInDay && styles.checkedInDay
+          isCheckedInDay && styles.checkedInDay,
+          isTodayCheckedIn && styles.todayCheckedIn
         ]}>
           <Text style={[
             styles.dayText,
             isToday && styles.todayText,
-            isCheckedInDay && styles.checkedInDayText
+            isCheckedInDay && styles.checkedInDayText,
+            isTodayCheckedIn && styles.todayCheckedInText
           ]}>
             {day}
           </Text>
-          {isCheckedInDay && (
+          {(isCheckedInDay || isTodayCheckedIn) && (
             <View style={styles.checkInDot} />
           )}
         </View>
       );
+    }
+    
+    // Thêm các ngày trống cho tuần cuối cùng để đảm bảo lịch đẹp
+    const totalCells = firstDayWeekday + totalDays;
+    const remainingCells = 7 - (totalCells % 7);
+    if (remainingCells < 7) {
+      for (let i = 0; i < remainingCells; i++) {
+        days.push(<View key={`empty-end-${i}`} style={styles.calendarDay} />);
+      }
     }
     
     return days;
@@ -311,9 +354,27 @@ const CheckInScreen = () => {
           <Text style={styles.calendarTitle}>Lịch làm việc</Text>
           <View style={styles.calendarContainer}>
             <View style={styles.calendarHeader}>
-              <Text style={styles.calendarMonth}>
-                {currentTime.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
-              </Text>
+              <View style={styles.calendarNavigation}>
+                <TouchableOpacity 
+                  style={styles.navButton} 
+                  onPress={goToPreviousMonth}>
+                  <Icon name="chevron-left" size={24} color="#FF6B35" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.monthButton} 
+                  onPress={goToCurrentMonth}>
+                  <Text style={styles.calendarMonth}>
+                    {selectedMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.navButton} 
+                  onPress={goToNextMonth}>
+                  <Icon name="chevron-right" size={24} color="#FF6B35" />
+                </TouchableOpacity>
+              </View>
             </View>
             
             {/* Days of week */}
@@ -331,41 +392,33 @@ const CheckInScreen = () => {
         </View>
 
         {/* Thông tin check-in */}
-        {isCheckedIn && checkInTime && (
+        {isCheckedIn && (
           <View style={styles.checkInCard}>
             <View style={styles.checkInHeader}>
               <Icon name="check-circle" size={24} color="#4CAF50" />
               <Text style={[styles.checkInStatus, {color: '#4CAF50'}]}>
-                Đã Check-in
+                Đã Check-in hôm nay
               </Text>
             </View>
             <View style={styles.checkInInfo}>
-              <Text style={styles.checkInLabel}>Thời gian check-in:</Text>
-              <Text style={styles.checkInTime}>{formatTime(checkInTime)}</Text>
-              <Text style={styles.checkInDate}>{formatDate(checkInTime)}</Text>
+              <Text style={styles.checkInLabel}>Trạng thái:</Text>
+              <Text style={styles.checkInTime}>Hoàn thành check-in</Text>
+              <Text style={styles.checkInDate}>Bạn có thể check-in lại vào ngày mai</Text>
             </View>
           </View>
         )}
 
-        {/* Thời gian làm việc */}
-        {isCheckedIn && (
-          <View style={styles.workTimeCard}>
-            <Text style={styles.workTimeLabel}>Thời gian làm việc</Text>
-            <Text style={styles.workTime}>{calculateWorkTime()}</Text>
-          </View>
-        )}
-
-        {/* Nút Check In/Out */}
+        {/* Nút Check In */}
         <TouchableOpacity
           style={[
             styles.checkInButton,
-            isCheckedIn && styles.checkOutButton,
+            isCheckedIn && styles.buttonDisabled,
             loading && styles.buttonDisabled,
           ]}
-          onPress={isCheckedIn ? handleCheckOut : handleCheckIn}
-          disabled={loading}>
+          onPress={handleCheckIn}
+          disabled={loading || isCheckedIn}>
           <LinearGradient
-            colors={isCheckedIn ? ['#FF3D71', '#FF6B9D'] : ['#4CAF50', '#66BB6A']}
+            colors={isCheckedIn ? ['#CCCCCC', '#DDDDDD'] : ['#4CAF50', '#66BB6A']}
             style={styles.buttonGradient}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 0}}>
@@ -374,12 +427,12 @@ const CheckInScreen = () => {
             ) : (
               <>
                 <Icon
-                  name={isCheckedIn ? 'logout' : 'login'}
+                  name="login"
                   size={24}
-                  color="white"
+                  color={isCheckedIn ? '#999' : 'white'}
                 />
-                <Text style={styles.buttonText}>
-                  {isCheckedIn ? 'CHECK OUT' : 'CHECK IN'}
+                <Text style={[styles.buttonText, isCheckedIn && {color: '#999'}]}>
+                  {isCheckedIn ? 'ĐÃ CHECK IN' : 'CHECK IN'}
                 </Text>
               </>
             )}
@@ -540,10 +593,27 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   calendarContainer: {
-    alignItems: 'center',
+    width: '100%',
   },
   calendarHeader: {
     marginBottom: 15,
+    alignItems: 'center',
+  },
+  calendarNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  navButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  monthButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   calendarMonth: {
     fontSize: 18,
@@ -554,6 +624,8 @@ const styles = StyleSheet.create({
   daysOfWeek: {
     flexDirection: 'row',
     marginBottom: 10,
+    justifyContent: 'space-between',
+    width: '100%',
   },
   dayOfWeek: {
     width: 40,
@@ -561,12 +633,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#666',
-    marginHorizontal: 2,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   calendarDay: {
     width: 40,
@@ -592,6 +664,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   checkedInDayText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  todayCheckedIn: {
+    backgroundColor: '#2E7D32', // Xanh lá đậm hơn cho hôm nay đã check-in
+  },
+  todayCheckedInText: {
     color: 'white',
     fontWeight: 'bold',
   },

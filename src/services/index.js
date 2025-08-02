@@ -7,3 +7,4 @@ export {default as notificationService} from './notificationService';
 
 // Export location service
 export * from './locationService';
+export * from './checkInService';

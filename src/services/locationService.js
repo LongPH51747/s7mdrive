@@ -226,7 +226,7 @@ export const checkDistanceToPostOffice = async (userId) => {
       distance: distance,
       currentLocation: currentLocation,
       postOffice: userPostOffice,
-      isWithinRange: distance <= 100
+      isWithinRange: distance <= 2000
     };
 
     console.log('✅ Kết quả cuối cùng:', result);
