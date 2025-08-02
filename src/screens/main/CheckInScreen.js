@@ -205,7 +205,6 @@ const CheckInScreen = () => {
       console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
       
       setIsCheckedIn(true);
-      setCheckInTime(checkInTime);
       
       // Cập nhật danh sách ngày đã check-in
       const today = new Date();
