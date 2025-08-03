@@ -174,12 +174,18 @@ const OrderListScreen = () => {
       </View>
 
       <View style={styles.orderFooter}>
-        <Text style={styles.orderDate}>
-          {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-        </Text>
-        <Text style={styles.orderCode}>
-          #{item._id.slice(-8).toUpperCase()}
-        </Text>
+        <View style={styles.orderInfo}>
+          <Text style={styles.orderDate}>
+            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+          </Text>
+          <Text style={styles.orderCode}>
+            #{item._id.slice(-8).toUpperCase()}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.completeButton}>
+          <Icon name="check-circle" size={16} color="white" />
+          <Text style={styles.completeButtonText}>Hoàn thành</Text>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -372,6 +378,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
+  orderInfo: {
+    flex: 1,
+  },
   orderDate: {
     fontSize: 12,
     color: '#999',
@@ -380,6 +389,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
+  },
+  completeButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  completeButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
   emptyState: {
     flex: 1,
