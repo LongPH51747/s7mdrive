@@ -62,25 +62,21 @@ const DashboardScreen = () => {
     }).format(amount);
   };
 
-  const QuickActionButton = ({icon, title, onPress, color}) => (
+  const QuickActionButton = ({title, onPress, color}) => (
     <TouchableOpacity
       style={[styles.quickActionButton, {backgroundColor: color}]}
       onPress={onPress}>
-      <Icon name={icon} size={24} color="white" />
       <Text style={styles.quickActionText}>{title}</Text>
     </TouchableOpacity>
   );
 
-  const StatCard = ({title, value, subtitle, icon, color}) => (
+  const StatCard = ({title, value, subtitle, color}) => (
     <View style={[styles.statCard, {borderLeftColor: color}]}>
       <View style={styles.statCardContent}>
         <View style={styles.statCardLeft}>
           <Text style={styles.statCardTitle}>{title}</Text>
           <Text style={[styles.statCardValue, {color}]}>{value}</Text>
           <Text style={styles.statCardSubtitle}>{subtitle}</Text>
-        </View>
-        <View style={[styles.statCardIcon, {backgroundColor: color + '20'}]}>
-          <Icon name={icon} size={24} color={color} />
         </View>
       </View>
     </View>
@@ -102,7 +98,6 @@ const DashboardScreen = () => {
             <Text style={styles.userName}>{user?.name}</Text>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
-            <Icon name="notifications" size={24} color="white" />
             <View style={styles.notificationBadge}>
               <Text style={styles.notificationBadgeText}>3</Text>
             </View>
@@ -127,7 +122,6 @@ const DashboardScreen = () => {
                 title="Chuyến đi"
                 value={statistics?.today.total_orders || 0}
                 subtitle="đơn"
-                icon="local-shipping"
                 color="#4CAF50"
               />
             </TouchableOpacity>
@@ -135,14 +129,12 @@ const DashboardScreen = () => {
               title="Năng suất"
               value={statistics?.today.completed || 0}
               subtitle="%"
-              icon="trending-up"
               color="#2196F3"
             />
             <StatCard
               title="Thu nhập"
               value={statistics?.today.revenue || 0}
               subtitle="VND"
-              icon="account-balance-wallet"
               color="#FF9800"
             />
           </View>
@@ -153,19 +145,16 @@ const DashboardScreen = () => {
           <Text style={styles.sectionTitle}>Menu chức năng</Text>
           <View style={styles.quickActionsGrid}>
             <QuickActionButton
-              icon="assignment"
               title="Bán hàng"
               color="#FF5722"
               onPress={() => navigation.navigate('Orders')}
             />
             <QuickActionButton
-              icon="mic"
               title="Hỗ trợ khách hàng"
               color="#00BCD4"
               onPress={() => {}}
             />
             <QuickActionButton
-              icon="location-on"
               title="Quản lý địa điểm"
               color="#3F51B5"
               onPress={() => navigation.navigate('Map')}
@@ -174,19 +163,16 @@ const DashboardScreen = () => {
 
           <View style={styles.quickActionsGrid}>
             <QuickActionButton
-              icon="note-add"
               title="Thêm đơn lẻ"
               color="#9C27B0"
               onPress={() => navigation.navigate('Orders')}
             />
             <QuickActionButton
-              icon="print"
               title="In vận đơn"
               color="#FF9800"
               onPress={() => {}}
             />
             <QuickActionButton
-              icon="history"
               title="Lịch sử nộp tiền"
               color="#607D8B"
               onPress={() => navigation.navigate('History')}
@@ -195,7 +181,6 @@ const DashboardScreen = () => {
 
           <View style={styles.quickActionsGrid}>
             <QuickActionButton
-              icon="notifications"
               title="Thông báo"
               color="#F44336"
               onPress={() => {}}
@@ -206,7 +191,6 @@ const DashboardScreen = () => {
               <LinearGradient
                 colors={['#4CAF50', '#66BB6A']}
                 style={styles.checkInGradient}>
-                <Icon name="location-on" size={24} color="white" />
                 <Text style={styles.quickActionText}>Check in</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -331,11 +315,12 @@ const styles = StyleSheet.create({
   },
   statCardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   statCardLeft: {
     flex: 1,
+    alignItems: 'center',
   },
   statCardTitle: {
     fontSize: 12,
@@ -350,13 +335,6 @@ const styles = StyleSheet.create({
   statCardSubtitle: {
     fontSize: 10,
     color: '#999',
-  },
-  statCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   quickActionsGrid: {
     flexDirection: 'row',
