@@ -87,18 +87,33 @@ const OrderListScreen = () => {
   const handleCallPhone = (phoneNumber) => {
     if (phoneNumber) {
       const phoneUrl = `tel:${phoneNumber}`;
-      Linking.canOpenURL(phoneUrl)
-        .then(supported => {
-          if (supported) {
-            return Linking.openURL(phoneUrl);
-          } else {
-            Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
-          }
-        })
-        .catch(err => {
-          console.error('Error opening phone app:', err);
-          Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
-        });
+      Linking.openURL(phoneUrl).catch(err => {
+        console.error('Error opening phone app:', err);
+        Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
+      });
+    }
+  };
+
+  const handleOpenMaps = (addressData) => {
+    if (addressData?.latitude && addressData?.longitude) {
+      // Use coordinates for precise location
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${addressData.latitude},${addressData.longitude}`;
+      
+      Linking.openURL(mapsUrl).catch(err => {
+        console.error('Error opening Google Maps:', err);
+        Alert.alert('Lỗi', 'Không thể mở Google Maps');
+      });
+    } else if (addressData?.addressDetail) {
+      // Fallback to address if coordinates are not available
+      const encodedAddress = encodeURIComponent(addressData.addressDetail);
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+      
+      Linking.openURL(mapsUrl).catch(err => {
+        console.error('Error opening Google Maps:', err);
+        Alert.alert('Lỗi', 'Không thể mở Google Maps');
+      });
+    } else {
+      Alert.alert('Thông báo', 'Không có thông tin vị trí để chỉ đường');
     }
   };
 
@@ -144,6 +159,18 @@ const OrderListScreen = () => {
             Thu hộ: {formatCurrency(item.total_amount)}
           </Text>
         </View>
+
+                 <View style={styles.detailRow}>
+           <Icon name="directions" size={16} color="#666" />
+           <TouchableOpacity
+             onPress={() => handleOpenMaps(item.id_address)}
+             style={styles.mapsContainer}>
+             <Text style={[styles.detailText, styles.mapsText]}>
+               Chỉ đường bằng maps
+             </Text>
+             <Icon name="launch" size={16} color="#2196F3" style={styles.mapsIcon} />
+           </TouchableOpacity>
+         </View>
       </View>
 
       <View style={styles.orderFooter}>
@@ -405,6 +432,18 @@ const styles = StyleSheet.create({
      textDecorationLine: 'underline',
    },
    callIcon: {
+     marginLeft: 8,
+   },
+   mapsContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     flex: 1,
+   },
+   mapsText: {
+     color: '#2196F3',
+     textDecorationLine: 'underline',
+   },
+   mapsIcon: {
      marginLeft: 8,
    },
 });
