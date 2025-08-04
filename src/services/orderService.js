@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 import axios from 'axios';
-import {API_CONFIG} from '../constants/api';
+import {API_CONFIG, getExternalApiUrl} from '../constants/api';
 
 class OrderService {
   // Lấy danh sách đơn hàng
@@ -183,10 +183,10 @@ class OrderService {
   // Lấy đơn hàng theo khu vực (province và ward)
   async getOrdersByArea(province, ward) {
     try {
-      const url = `https://92f8fa709052.ngrok-free.app/api/order/filterOrderAddressByCityAndWard?province=${encodeURIComponent(province)}&ward=${encodeURIComponent(ward)}`;
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_FILTER_BY_AREA}?province=${encodeURIComponent(province)}&ward=${encodeURIComponent(ward)}`;
       
       const response = await axios.get(url, {
-        timeout: 10000,
+        timeout: API_CONFIG.TIMEOUT,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -195,6 +195,34 @@ class OrderService {
     } catch (error) {
       console.error('Get orders by area error:', error);
       return [];
+    }
+  }
+
+  // Cập nhật trạng thái đơn hàng thành "Giao thành công"
+  async updateOrderStatusToDelivered(orderId) {
+    try {
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_UPDATE_STATUS}/${orderId}`;
+      
+      const response = await axios.patch(url, {
+        status: "Giao thành công"
+      }, {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return {
+        success: true,
+        data: response.data,
+        message: 'Cập nhật trạng thái đơn hàng thành công'
+      };
+    } catch (error) {
+      console.error('Update order status error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng'
+      };
     }
   }
 }

@@ -4,6 +4,8 @@ export const API_CONFIG = {
   BASE_URL: 'http://192.168.100.120:3000',
   // Cho simulator/emulator
   LOCAL_URL: 'http://localhost:3000',
+  // URL cho API bên ngoài
+  BASE_URL_EXTERNAL: 'https://6bb16771d823.ngrok-free.app',
 
   // Endpoints
   ENDPOINTS: {
@@ -11,6 +13,10 @@ export const API_CONFIG = {
     ORDERS: '/orders',
     STATISTICS: '/statistics',
     NOTIFICATIONS: '/notifications',
+    
+    // Order service endpoints
+    ORDER_FILTER_BY_AREA: '/api/order/filterOrderAddressByCityAndWard',
+    ORDER_UPDATE_STATUS: '/api/order/updateStatus',
   },
 
   // Timeout
@@ -21,6 +27,11 @@ export const API_CONFIG = {
 export const getApiUrl = () => {
   // Sử dụng IP thật cho thiết bị, localhost cho simulator
   return __DEV__ ? API_CONFIG.BASE_URL : API_CONFIG.LOCAL_URL;
+};
+
+// Lấy URL cho API bên ngoài
+export const getExternalApiUrl = () => {
+  return API_CONFIG.BASE_URL_EXTERNAL;
 };
 
 export default API_CONFIG;

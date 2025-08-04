@@ -7,7 +7,7 @@
       "role": "shipper",
       "name": "Nguyễn Hoàng Thuận",
       "id_post_office": "1",
-      "area": "Xã Quốc Oai, Thành phố Hà Nội",
+      "area": "Phường Xuân Phương, Thành phố Hà Nội",
       "email": "shipper1@s7mdrive.com",
       "phone": "0987654321",
       "avatar": "https://i.pravatar.cc/300?img=2",
@@ -30,6 +30,10 @@
         {
           "date": "2025-08-02",
           "time": "21:15:51"
+        },
+        {
+          "date": "2025-08-03",
+          "time": "14:04:51"
         }
       ]
     }

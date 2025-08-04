@@ -16,10 +16,13 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { chatbotService } from '../services/chatbotService';
+// import {useNavigation} from '@react-navigation/native';
+// import { navigate } from '../navigation/NavigationRef';
 
 const { width, height } = Dimensions.get('window');
 
 const ChatBot = () => {
+  // const navigation = useNavigation();
   const [isVisible, setIsVisible] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -54,7 +57,14 @@ const ChatBot = () => {
 
     try {
       const response = await chatbotService.sendMessage(inputText.trim());
-      
+      // if(response === '2') {
+      //   navigate('OrderList')
+      //   setIsVisible(false)
+      // }
+      // if(response === '1') {
+      //   navigate('CheckIn')
+      //   setIsVisible(false)
+      // }
       const botMessage = {
         id: (Date.now() + 1).toString(),
         text: response,

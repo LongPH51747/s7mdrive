@@ -117,6 +117,49 @@ const OrderListScreen = () => {
     }
   };
 
+  const handleCompleteOrder = async (orderId, orderCode) => {
+    Alert.alert(
+      'Xác nhận hoàn thành',
+      `Bạn có chắc chắn muốn đánh dấu đơn hàng ${orderCode} là "Giao thành công"?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Hoàn thành',
+          style: 'default',
+          onPress: async () => {
+            try {
+              const result = await orderService.updateOrderStatusToDelivered(orderId);
+              
+              if (result.success) {
+                Alert.alert(
+                  'Thành công',
+                  result.message,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        // Refresh danh sách đơn hàng
+                        fetchOrdersByArea();
+                      }
+                    }
+                  ]
+                );
+              } else {
+                Alert.alert('Lỗi', result.message);
+              }
+            } catch (error) {
+              console.error('Error completing order:', error);
+              Alert.alert('Lỗi', 'Không thể hoàn thành đơn hàng. Vui lòng thử lại.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderOrderItem = ({item}) => (
     <TouchableOpacity
       style={styles.orderItem}
@@ -153,12 +196,12 @@ const OrderListScreen = () => {
            </TouchableOpacity>
          </View>
 
-        <View style={styles.detailRow}>
-          <Icon name="account-balance-wallet" size={16} color="#666" />
-          <Text style={styles.amountText}>
-            Thu hộ: {formatCurrency(item.total_amount)}
-          </Text>
-        </View>
+                 <View style={styles.detailRow}>
+           <Icon name="account-balance-wallet" size={16} color="#666" />
+           <Text style={styles.amountText}>
+             Thu hộ: {formatCurrency(item.payment_method === "COD" ? item.total_amount : 0)}
+           </Text>
+         </View>
 
                  <View style={styles.detailRow}>
            <Icon name="directions" size={16} color="#666" />
@@ -182,7 +225,10 @@ const OrderListScreen = () => {
             #{item._id.slice(-8).toUpperCase()}
           </Text>
         </View>
-        <TouchableOpacity style={styles.completeButton}>
+        <TouchableOpacity 
+          style={styles.completeButton}
+          onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
+        >
           <Icon name="check-circle" size={16} color="white" />
           <Text style={styles.completeButtonText}>Hoàn thành</Text>
         </TouchableOpacity>

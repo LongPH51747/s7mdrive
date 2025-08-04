@@ -14,7 +14,7 @@ function App() {
     <AuthProvider>
       <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
       <AppNavigator />
-      <ChatBot />
+      {/* <ChatBot /> */}
     </AuthProvider>
   );
 }
