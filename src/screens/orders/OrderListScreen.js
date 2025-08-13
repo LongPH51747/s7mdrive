@@ -34,35 +34,44 @@ const OrderListScreen = () => {
       setLoading(true);
       setError(null);
       
-      if (!user?.area) {
-        setError('Không tìm thấy thông tin khu vực của bạn');
-        return;
-      }
-
-      // Parse area string: "Xã Quốc Oai, Thành phố Hà Nội" -> ward: "Quốc Oai", province: "Hà Nội"
-      const areaParts = user.area.split(',').map(part => part.trim());
-      if (areaParts.length < 2) {
-        setError('Định dạng khu vực không đúng');
-        return;
-      }
-
-      // Extract ward and province from formatted strings
-      const wardPart = areaParts[0]; // "Xã Quốc Oai"
-      const provincePart = areaParts[1]; // "Thành phố Hà Nội"
+      // Sử dụng thông tin khu vực từ response đăng nhập mới
+      const province = user?.post_office_name || 'Hà Nội';
+      const ward = user?.address_shipping?.split(',')[0] || 'Xuân Phương';
       
-      // Remove prefixes like "Xã", "Thành phố", "Tỉnh"
-      const ward = wardPart.replace(/^(Xã|Phường|Quận|Huyện)\s+/, '');
-      const province = provincePart.replace(/^(Thành phố|Tỉnh)\s+/, '');
+      console.log('User info for orders:', {
+        post_office_name: user?.post_office_name,
+        address_shipping: user?.address_shipping,
+        province,
+        ward
+      });
 
       console.log('Fetching orders for area:', {ward, province});
       
       const data = await orderService.getOrdersByArea(province, ward);
       
-      // Lọc chỉ những đơn hàng có trạng thái "Đã xác nhận"
-      const confirmedOrders = data.filter(order => order.status === 'Đã xác nhận');
-      setOrders(confirmedOrders);
+      console.log('Raw data from API:', data);
+      console.log('Data type:', typeof data);
+      console.log('Data length:', Array.isArray(data) ? data.length : 'Not an array');
       
-      console.log('Orders fetched:', data.length, 'Confirmed orders:', confirmedOrders.length);
+      // Đảm bảo data là array
+      const ordersArray = Array.isArray(data) ? data : [];
+      
+      // Lọc chỉ những đơn hàng có trạng thái số: 2, 3, 4, 5, 6
+      const activeOrders = ordersArray.filter(order => {
+        console.log('Processing order:', order);
+        console.log('Order status:', order.status, 'Type:', typeof order.status);
+        
+        const status = parseInt(order.status);
+        const isValidStatus = [2, 3, 4, 5, 6].includes(status);
+        
+        console.log('Parsed status:', status, 'Is valid:', isValidStatus);
+        return isValidStatus;
+      });
+      
+      setOrders(activeOrders);
+      
+      console.log('Orders fetched:', ordersArray.length, 'Active orders:', activeOrders.length);
+      console.log('Active orders:', activeOrders);
     } catch (error) {
       console.error('Error fetching orders by area:', error);
       setError('Không thể tải danh sách đơn hàng');
@@ -82,6 +91,28 @@ const OrderListScreen = () => {
       style: 'currency',
       currency: 'VND',
     }).format(amount);
+  };
+
+  const getStatusText = (status) => {
+    const statusMap = {
+      2: 'Đã xác nhận',
+      3: 'Đang giao',
+      4: 'Đã giao',
+      5: 'Hoàn thành',
+      6: 'Đã hủy'
+    };
+    return statusMap[status] || `Trạng thái ${status}`;
+  };
+
+  const getStatusColor = (status) => {
+    const colorMap = {
+      2: '#FF9800', // Orange - Đã xác nhận
+      3: '#2196F3', // Blue - Đang giao
+      4: '#4CAF50', // Green - Đã giao
+      5: '#4CAF50', // Green - Hoàn thành
+      6: '#F44336'  // Red - Đã hủy
+    };
+    return colorMap[status] || '#666';
   };
 
   const handleCallPhone = (phoneNumber) => {
@@ -169,7 +200,9 @@ const OrderListScreen = () => {
           <Text style={styles.customerName}>
             {item.id_address?.fullName || 'Không có tên'}
           </Text>
-          <Text style={styles.orderStatus}>{item.status}</Text>
+          <Text style={[styles.orderStatus, {color: getStatusColor(item.status)}]}>
+            {getStatusText(item.status)}
+          </Text>
         </View>
         <Icon name="chevron-right" size={24} color="#666" />
       </View>
@@ -225,13 +258,15 @@ const OrderListScreen = () => {
             #{item._id.slice(-8).toUpperCase()}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.completeButton}
-          onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
-        >
-          <Icon name="check-circle" size={16} color="white" />
-          <Text style={styles.completeButtonText}>Hoàn thành</Text>
-        </TouchableOpacity>
+        {[2, 3, 4].includes(parseInt(item.status)) && (
+          <TouchableOpacity 
+            style={styles.completeButton}
+            onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
+          >
+            <Icon name="check-circle" size={16} color="white" />
+            <Text style={styles.completeButtonText}>Hoàn thành</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -241,7 +276,7 @@ const OrderListScreen = () => {
       <Icon name="local-shipping" size={64} color="#ccc" />
       <Text style={styles.emptyStateTitle}>Không có đơn hàng</Text>
       <Text style={styles.emptyStateSubtitle}>
-        Hiện tại không có đơn hàng nào đã xác nhận trong khu vực của bạn
+        Hiện tại không có đơn hàng nào đang hoạt động trong khu vực của bạn
       </Text>
     </View>
   );
@@ -273,9 +308,9 @@ const OrderListScreen = () => {
             onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-                     <Text style={styles.headerTitle}>Đơn hàng đã xác nhận</Text>
+                     <Text style={styles.headerTitle}>Đơn hàng đang hoạt động</Text>
           <View style={styles.headerRight}>
-            <Text style={styles.areaText}>{user?.area}</Text>
+            <Text style={styles.areaText}>{user?.address_shipping}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -301,7 +336,7 @@ const OrderListScreen = () => {
                      ListHeaderComponent={
              <View style={styles.listHeader}>
                <Text style={styles.listHeaderTitle}>
-                 Tổng cộng: {orders.length} đơn hàng đã xác nhận
+                 Tổng cộng: {orders.length} đơn hàng đang hoạt động
                </Text>
              </View>
            }

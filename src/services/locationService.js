@@ -157,7 +157,104 @@ export const getCurrentLocation = () => {
   });
 };
 
-// Hàm kiểm tra khoảng cách đến bưu cục
+// Hàm kiểm tra khoảng cách đến bưu cục (sử dụng user data)
+export const checkDistanceToPostOfficeWithUserData = async (user) => {
+  console.log('=== BẮT ĐẦU KIỂM TRA KHOẢNG CÁCH (USER DATA) ===');
+  console.log('Thông tin user:', {
+    id: user?.id,
+    name: user?.name,
+    post_office_name: user?.post_office_name,
+    post_office_address: user?.post_office_address,
+    post_office_latitude: user?.post_office_latitude,
+    post_office_longitude: user?.post_office_longitude
+  });
+  console.log('Thời gian bắt đầu:', new Date().toLocaleString('vi-VN'));
+  
+  try {
+    // Xin quyền truy cập vị trí
+    console.log('🔐 Đang xin quyền truy cập vị trí...');
+    const hasPermission = await requestLocationPermission();
+    console.log('✅ Quyền truy cập vị trí:', hasPermission ? 'Đã cấp' : 'Bị từ chối');
+    
+    if (!hasPermission) {
+      throw new Error('Không có quyền truy cập vị trí');
+    }
+
+    // Lấy vị trí hiện tại
+    console.log('📍 Đang lấy vị trí hiện tại...');
+    const currentLocation = await getCurrentLocation();
+    console.log('📍 Vị trí hiện tại của bạn:');
+    console.log('   - Latitude:', currentLocation.latitude);
+    console.log('   - Longitude:', currentLocation.longitude);
+    console.log('   - Link Google Maps:', `https://www.google.com/maps?q=${currentLocation.latitude},${currentLocation.longitude}`);
+
+    // Kiểm tra thông tin bưu cục từ user
+    if (!user?.post_office_latitude || !user?.post_office_longitude) {
+      console.log('❌ Không có thông tin tọa độ bưu cục từ user');
+      throw new Error('Không có thông tin tọa độ bưu cục');
+    }
+
+    const postOfficeData = {
+      id: user.id,
+      name: user.post_office_name,
+      address: user.post_office_address,
+      latitude: user.post_office_latitude,
+      longitude: user.post_office_longitude
+    };
+
+    console.log('🏢 Thông tin bưu cục từ user:');
+    console.log('   - ID:', postOfficeData.id);
+    console.log('   - Tên:', postOfficeData.name);
+    console.log('   - Địa chỉ:', postOfficeData.address);
+    console.log('   - Latitude:', postOfficeData.latitude);
+    console.log('   - Longitude:', postOfficeData.longitude);
+    console.log('   - Link Google Maps:', `https://www.google.com/maps?q=${postOfficeData.latitude},${postOfficeData.longitude}`);
+
+    // Tính khoảng cách
+    console.log('📏 Đang tính khoảng cách...');
+    const distance = calculateDistance(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      postOfficeData.latitude,
+      postOfficeData.longitude
+    );
+
+    console.log('📏 Kết quả tính khoảng cách:');
+    console.log('   - Khoảng cách chính xác:', distance.toFixed(2), 'mét');
+    console.log('   - Khoảng cách làm tròn:', Math.round(distance), 'mét');
+    console.log('   - Phạm vi cho phép:', '100 mét');
+    console.log('   - Có trong phạm vi không:', distance <= 100 ? '✅ CÓ' : '❌ KHÔNG');
+
+    // Thông tin chi tiết về vị trí
+    console.log('🗺️ Thông tin chi tiết:');
+    console.log('   - Vị trí của bạn:', `${currentLocation.latitude}, ${currentLocation.longitude}`);
+    console.log('   - Vị trí bưu cục:', `${postOfficeData.latitude}, ${postOfficeData.longitude}`);
+    console.log('   - Chênh lệch Latitude:', Math.abs(currentLocation.latitude - postOfficeData.latitude).toFixed(6));
+    console.log('   - Chênh lệch Longitude:', Math.abs(currentLocation.longitude - postOfficeData.longitude).toFixed(6));
+
+    const result = {
+      success: true,
+      distance: distance,
+      currentLocation: currentLocation,
+      postOffice: postOfficeData,
+      isWithinRange: distance <= 100
+    };
+
+    console.log('✅ Kết quả cuối cùng:', result);
+    console.log('=== KẾT THÚC KIỂM TRA KHOẢNG CÁCH (USER DATA) ===\n');
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Lỗi khi kiểm tra khoảng cách:', error);
+    console.log('=== KẾT THÚC KIỂM TRA KHOẢNG CÁCH (USER DATA) (LỖI) ===\n');
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Hàm kiểm tra khoảng cách đến bưu cục (legacy - sử dụng userId)
 export const checkDistanceToPostOffice = async (userId) => {
   console.log('=== BẮT ĐẦU KIỂM TRA KHOẢNG CÁCH ===');
   console.log('User ID (post_office_id):', userId);

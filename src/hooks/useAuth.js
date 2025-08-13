@@ -41,20 +41,20 @@ export const AuthProvider = ({children}) => {
         await saveUserData(userData);
         
         // Log thông tin user sau khi đăng nhập thành công
-        console.log('=== THÔNG TIN USER ĐÃ ĐĂNG NHẬP ===');
+        console.log('=== THÔNG TIN SHIPPER ĐÃ ĐĂNG NHẬP ===');
         console.log('ID:', userData.id);
         console.log('Username:', userData.username);
         console.log('Tên:', userData.name);
-        console.log('Email:', userData.email);
         console.log('Số điện thoại:', userData.phone);
         console.log('Vai trò:', userData.role);
-        console.log('Khu vực:', userData.area);
-        console.log('Phương tiện:', userData.vehicle);
-        console.log('Biển số xe:', userData.license_plate);
-        console.log('Trạng thái:', userData.status === 0 ? 'Hoạt động' : 'Không hoạt động');
-        console.log('ID Bưu cục:', userData.id_post_office);
+        console.log('Trạng thái:', userData.status ? 'Hoạt động' : 'Không hoạt động');
+        console.log('Bưu cục:', userData.post_office_name);
+        console.log('Địa chỉ bưu cục:', userData.post_office_address);
+        console.log('Khu vực giao hàng:', userData.address_shipping);
+        console.log('Tọa độ bưu cục:', `${userData.post_office_latitude}, ${userData.post_office_longitude}`);
+        console.log('Số đơn hàng đã làm:', userData.work?.length || 0);
         console.log('Thời gian đăng nhập:', new Date(userData.loginTime).toLocaleString('vi-VN'));
-        console.log('Password:', userData.password);
+        console.log('Token:', userData.token ? 'Có' : 'Không');
         console.log('=====================================');
         
         return true;
