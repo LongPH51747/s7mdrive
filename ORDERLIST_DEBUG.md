@@ -96,6 +96,12 @@ Parsed status: 2 Is valid: true
 ### 2. **Trạng thái không đúng format**
 - Status là string thay vì number
 - Status không nằm trong range [2,3,4,5,6]
+- **Trạng thái mới:**
+  - 2: Đã xác nhận
+  - 3: Rời kho
+  - 4: Tới bưu cục
+  - 5: Shipper nhận hàng
+  - 6: Đang giao
 
 ### 3. **Thông tin khu vực sai**
 - Province/ward không khớp với API
@@ -127,6 +133,12 @@ GET https://389a5362809e.ngrok-free.app/api/order/filterOrderAddressByCityAndWar
 ### 3. **Kiểm tra trạng thái**:
 - Status có phải là string "2" không?
 - Có cần parse thành number không?
+- **Trạng thái hợp lệ:** 2, 3, 4, 5, 6
+  - 2: Đã xác nhận (Orange)
+  - 3: Rời kho (Blue)
+  - 4: Tới bưu cục (Purple)
+  - 5: Shipper nhận hàng (Deep Orange)
+  - 6: Đang giao (Green)
 
 ## Logs cần theo dõi
 

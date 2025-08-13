@@ -1,150 +1,187 @@
-# Cập nhật Logic Hiển thị Đơn hàng theo Trạng thái Số
+# Cập nhật Trạng thái Đơn hàng
 
 ## Tổng quan
-Đã cập nhật logic hiển thị đơn hàng từ trạng thái "Đã xác nhận" sang các trạng thái số: 2, 3, 4, 5, 6.
+Cập nhật mapping trạng thái đơn hàng theo yêu cầu mới từ backend.
 
-## Các trạng thái mới
+## Trạng thái cũ vs mới
 
-### Mapping trạng thái số sang text:
-- **2**: "Đã xác nhận" (Màu cam)
-- **3**: "Đang giao" (Màu xanh dương)
-- **4**: "Đã giao" (Màu xanh lá)
-- **5**: "Hoàn thành" (Màu xanh lá)
-- **6**: "Đã hủy" (Màu đỏ)
-
-### Màu sắc trạng thái:
-- **Trạng thái 2**: `#FF9800` (Orange)
-- **Trạng thái 3**: `#2196F3` (Blue)
-- **Trạng thái 4**: `#4CAF50` (Green)
-- **Trạng thái 5**: `#4CAF50` (Green)
-- **Trạng thái 6**: `#F44336` (Red)
-
-## Các thay đổi chính
-
-### 1. Cập nhật OrderListScreen (`src/screens/orders/OrderListScreen.js`)
-
-#### Logic lọc đơn hàng:
+### ❌ Trạng thái cũ (Sai):
 ```javascript
-// Trước: Lọc theo trạng thái "Đã xác nhận"
-const confirmedOrders = data.filter(order => order.status === 'Đã xác nhận');
-
-// Sau: Lọc theo trạng thái số 2, 3, 4, 5, 6
-const activeOrders = data.filter(order => {
-  const status = parseInt(order.status);
-  return [2, 3, 4, 5, 6].includes(status);
-});
+const statusMap = {
+  2: 'Đã xác nhận',
+  3: 'Đang giao',
+  4: 'Đã giao',
+  5: 'Hoàn thành',
+  6: 'Đã hủy'
+};
 ```
 
-#### Functions mới:
+### ✅ Trạng thái mới (Đúng):
 ```javascript
-// Lấy text trạng thái từ số
+const statusMap = {
+  2: 'Đã xác nhận',
+  3: 'Rời kho',
+  4: 'Tới bưu cục',
+  5: 'Shipper nhận hàng',
+  6: 'Đang giao'
+};
+```
+
+## Màu sắc tương ứng
+
+### ❌ Màu sắc cũ:
+```javascript
+const colorMap = {
+  2: '#FF9800', // Orange - Đã xác nhận
+  3: '#2196F3', // Blue - Đang giao
+  4: '#4CAF50', // Green - Đã giao
+  5: '#4CAF50', // Green - Hoàn thành
+  6: '#F44336'  // Red - Đã hủy
+};
+```
+
+### ✅ Màu sắc mới:
+```javascript
+const colorMap = {
+  2: '#FF9800', // Orange - Đã xác nhận
+  3: '#2196F3', // Blue - Rời kho
+  4: '#9C27B0', // Purple - Tới bưu cục
+  5: '#FF5722', // Deep Orange - Shipper nhận hàng
+  6: '#4CAF50'  // Green - Đang giao
+};
+```
+
+## Logic hiển thị nút "Hoàn thành"
+
+### ❌ Logic cũ:
+```javascript
+{[2, 3, 4].includes(parseInt(item.status)) && (
+  <TouchableOpacity style={styles.completeButton}>
+    <Text>Hoàn thành</Text>
+  </TouchableOpacity>
+)}
+```
+
+### ✅ Logic mới:
+```javascript
+{[2, 3, 4, 5, 6].includes(parseInt(item.status)) && (
+  <TouchableOpacity style={styles.completeButton}>
+    <Text>Hoàn thành</Text>
+  </TouchableOpacity>
+)}
+```
+
+## Quy trình đơn hàng mới
+
+### 1. **Đã xác nhận** (2) - Orange
+- Đơn hàng đã được xác nhận từ hệ thống
+- Shipper có thể bắt đầu xử lý
+
+### 2. **Rời kho** (3) - Blue
+- Hàng đã rời khỏi kho trung tâm
+- Đang trong quá trình vận chuyển
+
+### 3. **Tới bưu cục** (4) - Purple
+- Hàng đã đến bưu cục địa phương
+- Sẵn sàng cho shipper nhận
+
+### 4. **Shipper nhận hàng** (5) - Deep Orange
+- Shipper đã nhận hàng từ bưu cục
+- Bắt đầu giao hàng
+
+### 5. **Đang giao** (6) - Green
+- Shipper đang giao hàng cho khách
+- Có thể hoàn thành đơn hàng
+
+## Các thay đổi trong code
+
+### 1. **File: `src/screens/orders/OrderListScreen.js`**
+
+#### Cập nhật `getStatusText()`:
+```javascript
 const getStatusText = (status) => {
   const statusMap = {
     2: 'Đã xác nhận',
-    3: 'Đang giao',
-    4: 'Đã giao',
-    5: 'Hoàn thành',
-    6: 'Đã hủy'
+    3: 'Rời kho',
+    4: 'Tới bưu cục',
+    5: 'Shipper nhận hàng',
+    6: 'Đang giao'
   };
   return statusMap[status] || `Trạng thái ${status}`;
 };
+```
 
-// Lấy màu sắc trạng thái
+#### Cập nhật `getStatusColor()`:
+```javascript
 const getStatusColor = (status) => {
   const colorMap = {
-    2: '#FF9800', // Orange
-    3: '#2196F3', // Blue
-    4: '#4CAF50', // Green
-    5: '#4CAF50', // Green
-    6: '#F44336'  // Red
+    2: '#FF9800', // Orange - Đã xác nhận
+    3: '#2196F3', // Blue - Rời kho
+    4: '#9C27B0', // Purple - Tới bưu cục
+    5: '#FF5722', // Deep Orange - Shipper nhận hàng
+    6: '#4CAF50'  // Green - Đang giao
   };
   return colorMap[status] || '#666';
 };
 ```
 
-#### Hiển thị trạng thái:
+#### Cập nhật logic hiển thị nút:
 ```javascript
-// Trước: Hiển thị số trạng thái
-<Text style={styles.orderStatus}>Trạng thái: {item.status}</Text>
-
-// Sau: Hiển thị text và màu sắc
-<Text style={[styles.orderStatus, {color: getStatusColor(item.status)}]}>
-  {getStatusText(item.status)}
-</Text>
-```
-
-#### Logic nút "Hoàn thành":
-```javascript
-// Chỉ hiển thị nút "Hoàn thành" cho trạng thái 2, 3, 4
-{[2, 3, 4].includes(parseInt(item.status)) && (
-  <TouchableOpacity 
-    style={styles.completeButton}
-    onPress={() => handleCompleteOrder(item._id, orderCode)}
-  >
-    <Icon name="check-circle" size={16} color="white" />
-    <Text style={styles.completeButtonText}>Hoàn thành</Text>
+{[2, 3, 4, 5, 6].includes(parseInt(item.status)) && (
+  <TouchableOpacity style={styles.completeButton}>
+    <Text>Hoàn thành</Text>
   </TouchableOpacity>
 )}
 ```
 
-### 2. Cập nhật UI Text
+## Lợi ích của thay đổi
 
-#### Header:
-- **Trước**: "Đơn hàng đã xác nhận"
-- **Sau**: "Đơn hàng đang hoạt động"
+### 1. **Chính xác hơn**
+- Phản ánh đúng quy trình thực tế của đơn hàng
+- Từng bước rõ ràng và logic
 
-#### List Header:
-- **Trước**: "Tổng cộng: X đơn hàng đã xác nhận"
-- **Sau**: "Tổng cộng: X đơn hàng đang hoạt động"
+### 2. **Dễ theo dõi**
+- Shipper biết chính xác vị trí đơn hàng
+- Màu sắc phân biệt rõ từng trạng thái
 
-#### Empty State:
-- **Trước**: "Hiện tại không có đơn hàng nào đã xác nhận trong khu vực của bạn"
-- **Sau**: "Hiện tại không có đơn hàng nào đang hoạt động trong khu vực của bạn"
+### 3. **Quản lý tốt hơn**
+- Có thể track được từng bước trong quy trình
+- Dễ dàng xác định bottleneck
 
-## Quy trình hoạt động
+## Testing
 
-### 1. Lọc đơn hàng
-- Lấy tất cả đơn hàng theo khu vực
-- Lọc chỉ những đơn có trạng thái 2, 3, 4, 5, 6
-- Hiển thị danh sách đã lọc
+### 1. **Kiểm tra hiển thị**
+- Đơn hàng với status 2-6 hiển thị đúng text và màu
+- Nút "Hoàn thành" xuất hiện cho tất cả trạng thái
 
-### 2. Hiển thị trạng thái
-- Chuyển đổi số trạng thái sang text
-- Áp dụng màu sắc tương ứng
-- Hiển thị trong UI
+### 2. **Kiểm tra logic**
+- Filter đơn hàng theo status [2,3,4,5,6]
+- Parse status từ string sang number
 
-### 3. Xử lý nút "Hoàn thành"
-- Chỉ hiển thị cho trạng thái 2, 3, 4
-- Ẩn nút cho trạng thái 5, 6
+### 3. **Kiểm tra UI**
+- Màu sắc phân biệt rõ từng trạng thái
+- Text hiển thị đúng và dễ hiểu
 
-## Lợi ích của việc cập nhật
+## Logs cần theo dõi
 
-### 1. **Hiển thị đa dạng hơn**
-- Không chỉ hiển thị đơn hàng "đã xác nhận"
-- Bao gồm các trạng thái khác nhau của đơn hàng
+```
+Processing order: {_id: "...", status: "2", ...}
+Order status: "2" Type: string
+Parsed status: 2 Is valid: true
+Status text: "Đã xác nhận"
+Status color: "#FF9800"
+```
 
-### 2. **Trực quan hơn**
-- Màu sắc giúp phân biệt trạng thái dễ dàng
-- Text rõ ràng thay vì chỉ số
+## Troubleshooting
 
-### 3. **Logic chính xác hơn**
-- Nút "Hoàn thành" chỉ hiển thị khi phù hợp
-- Tránh thao tác sai trên đơn hàng đã hoàn thành
+### 1. **Nếu status không hiển thị đúng**
+- Kiểm tra mapping trong `getStatusText()`
+- Kiểm tra kiểu dữ liệu của status
 
-### 4. **Dễ mở rộng**
-- Dễ dàng thêm trạng thái mới
-- Mapping linh hoạt giữa số và text
+### 2. **Nếu màu sắc không đúng**
+- Kiểm tra mapping trong `getStatusColor()`
+- Kiểm tra CSS/React Native styles
 
-## Cách sử dụng
-
-1. **Xem danh sách**: Hiển thị tất cả đơn hàng có trạng thái 2-6
-2. **Phân biệt trạng thái**: Dựa vào màu sắc và text
-3. **Thao tác**: Chỉ có thể hoàn thành đơn hàng trạng thái 2, 3, 4
-4. **Theo dõi**: Dễ dàng theo dõi tiến trình đơn hàng
-
-## Lưu ý kỹ thuật
-
-- **Parse status**: Sử dụng `parseInt()` để chuyển string sang number
-- **Fallback**: Có xử lý trường hợp trạng thái không có trong mapping
-- **Performance**: Filter được thực hiện một lần khi load data
-- **UI consistency**: Màu sắc và text thống nhất trong toàn bộ app
+### 3. **Nếu nút không hiển thị**
+- Kiểm tra logic `[2, 3, 4, 5, 6].includes()`
+- Kiểm tra `parseInt(item.status)`

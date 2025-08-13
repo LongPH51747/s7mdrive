@@ -96,10 +96,10 @@ const OrderListScreen = () => {
   const getStatusText = (status) => {
     const statusMap = {
       2: 'Đã xác nhận',
-      3: 'Đang giao',
-      4: 'Đã giao',
-      5: 'Hoàn thành',
-      6: 'Đã hủy'
+      3: 'Rời kho',
+      4: 'Tới bưu cục',
+      5: 'Shipper nhận hàng',
+      6: 'Đang giao'
     };
     return statusMap[status] || `Trạng thái ${status}`;
   };
@@ -107,10 +107,10 @@ const OrderListScreen = () => {
   const getStatusColor = (status) => {
     const colorMap = {
       2: '#FF9800', // Orange - Đã xác nhận
-      3: '#2196F3', // Blue - Đang giao
-      4: '#4CAF50', // Green - Đã giao
-      5: '#4CAF50', // Green - Hoàn thành
-      6: '#F44336'  // Red - Đã hủy
+      3: '#2196F3', // Blue - Rời kho
+      4: '#9C27B0', // Purple - Tới bưu cục
+      5: '#FF5722', // Deep Orange - Shipper nhận hàng
+      6: '#4CAF50'  // Green - Đang giao
     };
     return colorMap[status] || '#666';
   };
@@ -258,7 +258,7 @@ const OrderListScreen = () => {
             #{item._id.slice(-8).toUpperCase()}
           </Text>
         </View>
-        {[2, 3, 4].includes(parseInt(item.status)) && (
+        {[2, 3, 4, 5, 6].includes(parseInt(item.status)) && (
           <TouchableOpacity 
             style={styles.completeButton}
             onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
