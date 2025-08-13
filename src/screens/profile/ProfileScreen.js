@@ -11,9 +11,11 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
+import {useNavigation} from '@react-navigation/native';
 
 const ProfileScreen = () => {
   const {user, logout} = useAuth();
+  const navigation = useNavigation();
 
   const handleLogout = () => {
     Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
@@ -45,7 +47,13 @@ const ProfileScreen = () => {
           />
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.userRole}>
-            {user?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên giao hàng'}
+            {user?.role === 'admin' ? 'Quản trị viên' : 'Shipper'}
+          </Text>
+          <Text style={styles.userInfo}>
+            {user?.post_office_name}
+          </Text>
+          <Text style={styles.userInfo}>
+            {user?.address_shipping}
           </Text>
         </View>
       </LinearGradient>
@@ -55,7 +63,7 @@ const ProfileScreen = () => {
         <MenuButton
           icon="person"
           title="Thông tin cá nhân"
-          onPress={() => {}}
+          onPress={() => navigation.navigate('ShipperInfo')}
         />
         <MenuButton icon="lock" title="Đổi mật khẩu" onPress={() => {}} />
         <MenuButton
@@ -107,6 +115,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
     opacity: 0.9,
+    marginBottom: 3,
+  },
+  userInfo: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.8,
+    marginBottom: 2,
   },
   menuContainer: {
     backgroundColor: 'white',

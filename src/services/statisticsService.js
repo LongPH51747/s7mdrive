@@ -1,11 +1,11 @@
-import apiClient from './apiClient';
+import {externalApiClient} from './apiClient';
 import {API_CONFIG} from '../constants/api';
 
 class StatisticsService {
   // Lấy thống kê tổng quan
   async getStatistics() {
     try {
-      const response = await apiClient.get(API_CONFIG.ENDPOINTS.STATISTICS);
+      const response = await externalApiClient.get(API_CONFIG.ENDPOINTS.STATISTICS);
       return response.data;
     } catch (error) {
       console.error('Get statistics error:', error);
@@ -25,7 +25,7 @@ class StatisticsService {
         params.append('shipper_id', shipperId.toString());
       }
 
-      const response = await apiClient.get(
+      const response = await externalApiClient.get(
         `${API_CONFIG.ENDPOINTS.STATISTICS}/custom?${params.toString()}`,
       );
       return response.data;
@@ -44,7 +44,7 @@ class StatisticsService {
         url += `?shipper_id=${shipperId}`;
       }
 
-      const response = await apiClient.get(url);
+      const response = await externalApiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get shipper performance error:', error);
@@ -61,7 +61,7 @@ class StatisticsService {
         group_by: groupBy,
       });
 
-      const response = await apiClient.get(
+      const response = await externalApiClient.get(
         `${API_CONFIG.ENDPOINTS.STATISTICS}/revenue?${params.toString()}`,
       );
       return response.data;
@@ -72,11 +72,12 @@ class StatisticsService {
   }
 
   // Tính toán thống kê từ dữ liệu đơn hàng (fallback nếu API không có)
-  async calculateStatisticsFromOrders() {
+  async calculateStatisticsFromOrders(province = 'Hà Nội', ward = 'Xuân Phương') {
     try {
-      // Lấy tất cả đơn hàng
-      const ordersResponse = await apiClient.get(API_CONFIG.ENDPOINTS.ORDERS);
-      const orders = ordersResponse.data;
+      // Lấy tất cả đơn hàng từ external API
+      const url = `${API_CONFIG.ENDPOINTS.ORDER_FILTER_BY_AREA}?province=${encodeURIComponent(province)}&ward=${encodeURIComponent(ward)}`;
+      const ordersResponse = await externalApiClient.get(url);
+      const orders = ordersResponse.data || [];
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -143,7 +144,7 @@ class StatisticsService {
   // Cập nhật thống kê (cho admin)
   async updateStatistics(statistics) {
     try {
-      await apiClient.put(API_CONFIG.ENDPOINTS.STATISTICS, statistics);
+      await externalApiClient.put(API_CONFIG.ENDPOINTS.STATISTICS, statistics);
       return true;
     } catch (error) {
       console.error('Update statistics error:', error);

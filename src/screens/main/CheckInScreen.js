@@ -15,8 +15,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useNavigation} from '@react-navigation/native';
-import {checkDistanceToPostOffice, getPostOfficeInfo} from '../../services/locationService';
-import {saveCheckIn, hasCheckedInToday, getCheckedInDaysInMonth} from '../../services/checkInService';
+import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
+import {hasCheckedInToday, getCheckedInDaysInMonth, createWorkRecord} from '../../services/workService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CheckInScreen = () => {
@@ -37,8 +37,9 @@ const CheckInScreen = () => {
       id: user?.id,
       name: user?.name,
       role: user?.role,
-      area: user?.area,
-      id_post_office: user?.id_post_office
+      post_office_name: user?.post_office_name,
+      post_office_address: user?.post_office_address,
+      address_shipping: user?.address_shipping
     });
     console.log('📱 Trạng thái ban đầu:', {
       isCheckedIn
@@ -52,8 +53,7 @@ const CheckInScreen = () => {
         setIsCheckedIn(hasCheckedIn);
         
         if (hasCheckedIn) {
-          console.log('✅ User đã check-in hôm nay');
-          // TODO: Lấy thời gian check-in từ database
+          console.log('✅ Shipper đã check-in hôm nay');
         }
       }
     };
@@ -149,14 +149,22 @@ const CheckInScreen = () => {
     console.log('🚀 Thông tin user:', {
       id: user?.id,
       name: user?.name,
-      id_post_office: user?.id_post_office
+      post_office_name: user?.post_office_name,
+      post_office_address: user?.post_office_address
     });
     
     setLoading(true);
     try {
       // Kiểm tra khoảng cách đến bưu cục
       console.log('🚀 Đang kiểm tra khoảng cách...');
-      const locationResult = await checkDistanceToPostOffice(user?.id_post_office);
+      console.log('🚀 Thông tin bưu cục từ user:', {
+        post_office_name: user?.post_office_name,
+        post_office_address: user?.post_office_address,
+        post_office_latitude: user?.post_office_latitude,
+        post_office_longitude: user?.post_office_longitude
+      });
+      
+      const locationResult = await checkDistanceToPostOfficeWithUserData(user);
       console.log('🚀 Kết quả kiểm tra khoảng cách:', locationResult);
       
       if (!locationResult.success) {
@@ -196,7 +204,7 @@ const CheckInScreen = () => {
       
       console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
       
-      const saveResult = await saveCheckIn(user?.id);
+      const saveResult = await createWorkRecord(user?.id);
       
       if (!saveResult.success) {
         throw new Error(`Lỗi khi lưu check-in: ${saveResult.error}`);
@@ -214,15 +222,19 @@ const CheckInScreen = () => {
       // Lưu ngày check-in vào AsyncStorage
       await AsyncStorage.setItem('lastCheckInDate', new Date().toISOString().split('T')[0]);
       
+      // Reload dữ liệu từ API
+      await loadCheckedInDays();
+      
       console.log('✅ Check-in thành công!');
       console.log('✅ Thông tin check-in:');
       console.log('   - Thời gian:', checkInTime.toLocaleString('vi-VN'));
       console.log('   - Địa điểm:', locationResult.postOffice.address);
       console.log('   - Khoảng cách:', locationResult.distance.toFixed(2), 'm');
+      console.log('   - Work record ID:', saveResult.data?.id || 'Tạm thời');
       
       Alert.alert(
         'Check-in thành công!',
-        `Bạn đã check-in thành công tại ${locationResult.postOffice.address}. Chúc bạn một ngày làm việc hiệu quả!`,
+        `Bạn đã check-in thành công tại ${locationResult.postOffice.name} (${locationResult.postOffice.address}). Chúc bạn một ngày làm việc hiệu quả!`,
         [{text: 'OK'}]
       );
     } catch (error) {
@@ -335,8 +347,8 @@ const CheckInScreen = () => {
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.name}</Text>
-              <Text style={styles.userRole}>{user?.role}</Text>
-              <Text style={styles.userArea}>{user?.area}</Text>
+              <Text style={styles.userRole}>Shipper</Text>
+              <Text style={styles.userArea}>{user?.post_office_name}</Text>
             </View>
           </View>
         </View>
@@ -443,21 +455,19 @@ const CheckInScreen = () => {
           <Text style={styles.infoTitle}>Thông tin bổ sung</Text>
           <View style={styles.infoRow}>
             <Icon name="location-on" size={16} color="#666" />
-            <Text style={styles.infoText}>Khu vực: {user?.area}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Icon name="directions-car" size={16} color="#666" />
-            <Text style={styles.infoText}>Phương tiện: {user?.vehicle}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Icon name="confirmation-number" size={16} color="#666" />
-            <Text style={styles.infoText}>Biển số: {user?.license_plate}</Text>
+            <Text style={styles.infoText}>Khu vực giao hàng: {user?.address_shipping}</Text>
           </View>
           <View style={styles.infoRow}>
             <Icon name="business" size={16} color="#666" />
-            <Text style={styles.infoText}>
-              Bưu cục: {getPostOfficeInfo(user?.id_post_office)?.address || 'Không xác định'}
-            </Text>
+            <Text style={styles.infoText}>Bưu cục: {user?.post_office_name}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="place" size={16} color="#666" />
+            <Text style={styles.infoText}>Địa chỉ: {user?.post_office_address}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="assignment" size={16} color="#666" />
+            <Text style={styles.infoText}>Đơn hàng đã làm: {user?.work?.length || 0}</Text>
           </View>
         </View>
       </ScrollView>

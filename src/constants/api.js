@@ -1,11 +1,15 @@
 // API Configuration
 export const API_CONFIG = {
   // Thay đổi IP này theo IP máy tính của bạn
+<<<<<<< HEAD
   BASE_URL: 'http://192.168.110.35:3000',
+=======
+  BASE_URL: 'http://10.0.2.2:3000',
+>>>>>>> Origin/Nam
   // Cho simulator/emulator
   LOCAL_URL: 'http://localhost:3000',
   // URL cho API bên ngoài
-  BASE_URL_EXTERNAL: 'https://6bb16771d823.ngrok-free.app',
+  BASE_URL_EXTERNAL: 'https://389a5362809e.ngrok-free.app',
 
   // Endpoints
   ENDPOINTS: {
@@ -17,6 +21,13 @@ export const API_CONFIG = {
     // Order service endpoints
     ORDER_FILTER_BY_AREA: '/api/order/filterOrderAddressByCityAndWard',
     ORDER_UPDATE_STATUS: '/api/order/updateStatus',
+    
+    // Auth endpoints
+    SHIPPER_LOGIN: '/api/shipper/login',
+    
+    // Work endpoints
+    WORK_BY_SHIPPER: '/api/work/getWorkByShipper',
+    WORK_CREATE: '/api/work',
   },
 
   // Timeout

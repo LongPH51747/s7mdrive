@@ -12,6 +12,7 @@ import CreateOrderScreen from '../screens/orders/CreateOrderScreen';
 import MapTrackingScreen from '../screens/map/MapTrackingScreen';
 import HistoryScreen from '../screens/history/HistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import ShipperInfoScreen from '../screens/profile/ShipperInfoScreen';
 
 const Tab = createBottomTabNavigator();
 const OrderStack = createStackNavigator();
@@ -32,6 +33,16 @@ const DashboardNavigator = () => {
       <OrderStack.Screen name="DashboardMain" component={DashboardScreen} />
       <OrderStack.Screen name="CheckIn" component={CheckInScreen} />
       <OrderStack.Screen name="OrderList" component={OrderListScreen} />
+      <OrderStack.Screen name="ShipperInfo" component={ShipperInfoScreen} />
+    </OrderStack.Navigator>
+  );
+};
+
+const ProfileNavigator = () => {
+  return (
+    <OrderStack.Navigator screenOptions={{headerShown: false}}>
+      <OrderStack.Screen name="ProfileMain" component={ProfileScreen} />
+      <OrderStack.Screen name="ShipperInfo" component={ShipperInfoScreen} />
     </OrderStack.Navigator>
   );
 };
@@ -107,7 +118,7 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileNavigator}
         options={{
           tabBarLabel: 'Tài khoản',
         }}

@@ -31,8 +31,12 @@ const DashboardScreen = () => {
         setStatistics(data);
       } else {
         // Fallback: tính toán từ đơn hàng nếu API không có data
+        // Lấy thông tin khu vực từ user
+        const province = user?.post_office_name || 'Hà Nội';
+        const ward = user?.address_shipping?.split(',')[0] || 'Xuân Phương';
+        
         const calculatedStats =
-          await statisticsService.calculateStatisticsFromOrders();
+          await statisticsService.calculateStatisticsFromOrders(province, ward);
         if (calculatedStats) {
           setStatistics(calculatedStats);
         }
@@ -96,6 +100,9 @@ const DashboardScreen = () => {
           <View style={styles.headerLeft}>
             <Text style={styles.greeting}>{getGreeting()}</Text>
             <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.userInfo}>
+              {user?.post_office_name} • {user?.address_shipping}
+            </Text>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
             <View style={styles.notificationBadge}>
@@ -256,6 +263,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginTop: 5,
+  },
+  userInfo: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.8,
+    marginTop: 3,
   },
   notificationButton: {
     position: 'relative',
