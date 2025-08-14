@@ -9,5 +9,15 @@ export {default as notificationService} from './notificationService';
 export * from './locationService';
 export * from './checkInService';
 
+// Export work service functions
+export {
+  createWorkRecord,
+  getWorkHistoryByShipper,
+  hasCheckedInToday,
+  getCheckedInDaysInMonth,
+  getCheckInStatistics,
+  confirmOrderSuccess
+} from './workService';
+
 // Export chatbot service
 export {chatbotService} from './chatbotService';

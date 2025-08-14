@@ -165,3 +165,59 @@ export const getCheckInStatistics = async (shipperId) => {
     };
   }
 };
+
+// Xác nhận đơn hàng hoàn thành với ảnh
+export const confirmOrderSuccess = async (shipperId, orderId, imageUri) => {
+  try {
+    console.log('📸 Xác nhận đơn hàng hoàn thành:', {shipperId, orderId});
+    console.log('📸 Image URI:', imageUri);
+    
+    // Tạo FormData
+    const formData = new FormData();
+    formData.append('id_order', orderId);
+    formData.append('image', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'image.jpg'
+    });
+    
+    // Log URL API
+    const apiUrl = `${API_CONFIG.BASE_URL_EXTERNAL}${API_CONFIG.ENDPOINTS.WORK_ORDER_SUCCESS}/${shipperId}`;
+    console.log('🌐 URL API xác nhận đơn hàng:', apiUrl);
+    console.log('🌐 Endpoint:', API_CONFIG.ENDPOINTS.WORK_ORDER_SUCCESS);
+    console.log('🌐 Base URL:', API_CONFIG.BASE_URL_EXTERNAL);
+    console.log('🌐 Shipper ID:', shipperId);
+    console.log('📤 FormData content:');
+    console.log('   - id_order:', orderId);
+    console.log('   - image:', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'image.jpg'
+    });
+    
+    // Gọi API với multipart/form-data
+    const response = await externalApiClient.put(
+      `${API_CONFIG.ENDPOINTS.WORK_ORDER_SUCCESS}/${shipperId}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    
+    console.log('📥 Response từ API:', response.data);
+    
+    return {
+      success: true,
+      data: response.data,
+      message: 'Đơn hàng đã được xác nhận hoàn thành'
+    };
+  } catch (error) {
+    console.error('❌ Lỗi khi xác nhận đơn hàng:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
