@@ -6,23 +6,20 @@ export const createWorkRecord = async (shipperId) => {
   try {
     console.log('📝 Tạo work record mới cho shipper:', shipperId);
     
-    const workRecord = {
-      idShipper: shipperId,
-      order_success: [], // Mảng rỗng vì mới check-in
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Log URL API
+    const apiUrl = `${API_CONFIG.BASE_URL_EXTERNAL}${API_CONFIG.ENDPOINTS.WORK_CHECKIN}/${shipperId}`;
+    console.log('🌐 URL API check-in:', apiUrl);
+    console.log('📤 Request body: Không có (POST request)');
     
-    console.log('📝 Work record sẽ tạo:', workRecord);
+    // Gọi API thực tế - không cần body
+    const response = await externalApiClient.post(`${API_CONFIG.ENDPOINTS.WORK_CHECKIN}/${shipperId}`);
     
-    // TODO: Thay thế bằng API thực tế khi có endpoint
-    // const response = await externalApiClient.post(API_CONFIG.ENDPOINTS.WORK_CREATE, workRecord);
+    console.log('📥 Response từ API:', response.data);
     
-    // Tạm thời return success để test
     return {
       success: true,
-      data: workRecord,
-      message: 'Work record đã được tạo (tạm thời)'
+      data: response.data,
+      message: 'Work record đã được tạo thành công'
     };
   } catch (error) {
     console.error('❌ Lỗi khi tạo work record:', error);
@@ -38,11 +35,19 @@ export const getWorkHistoryByShipper = async (shipperId) => {
   try {
     console.log('📋 Lấy lịch sử work cho shipper:', shipperId);
     
+    const apiUrl = `${API_CONFIG.BASE_URL_EXTERNAL}${API_CONFIG.ENDPOINTS.WORK_BY_SHIPPER}/${shipperId}`;
+    console.log('🌐 URL API lấy lịch sử work:', apiUrl);
+    
     const response = await externalApiClient.get(`${API_CONFIG.ENDPOINTS.WORK_BY_SHIPPER}/${shipperId}`);
     const workHistory = response.data;
     
     console.log('📋 Lịch sử work từ API:', workHistory);
     console.log('📋 Tổng số ngày đã làm việc:', workHistory.length);
+    console.log('📋 Chi tiết từng work record:', workHistory.map(work => ({
+      id: work.id,
+      createdAt: work.createdAt,
+      orderSuccess: work.order_success?.length || 0
+    })));
     
     return {
       success: true,

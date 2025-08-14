@@ -5,7 +5,7 @@ export const API_CONFIG = {
   // Cho simulator/emulator
   LOCAL_URL: 'http://localhost:3000',
   // URL cho API bên ngoài
-  BASE_URL_EXTERNAL: 'https://389a5362809e.ngrok-free.app',
+  BASE_URL_EXTERNAL: 'https://290538b87be0.ngrok-free.app',
 
   // Endpoints
   ENDPOINTS: {
@@ -24,6 +24,7 @@ export const API_CONFIG = {
     // Work endpoints
     WORK_BY_SHIPPER: '/api/work/getWorkByShipper',
     WORK_CREATE: '/api/work',
+    WORK_CHECKIN: '/api/work/checkin',
   },
 
   // Timeout

@@ -19,6 +19,11 @@ export const saveCheckIn = async (userId) => {
     
     console.log('💾 Check-in record mới:', newCheckIn);
     
+    // Log URL API
+    const apiUrl = `${apiClient.defaults.baseURL}/users/${userId}`;
+    console.log('🌐 URL API check-in (checkInService):', apiUrl);
+    console.log('📤 Request body:', JSON.stringify({check_in: updatedCheckIn}, null, 2));
+    
     // Thêm vào mảng check_in hiện tại
     const updatedCheckIn = [...(currentUser.check_in || []), newCheckIn];
     

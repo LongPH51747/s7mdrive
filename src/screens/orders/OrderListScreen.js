@@ -14,11 +14,13 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
+import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
 import {orderService} from '../../services';
 
 const OrderListScreen = () => {
   const {user} = useAuth();
+  const {isCheckedIn, loading: checkInLoading} = useCheckIn();
   const navigation = useNavigation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +28,27 @@ const OrderListScreen = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchOrdersByArea();
-  }, []);
+    if (!checkInLoading) {
+      if (!isCheckedIn) {
+        Alert.alert(
+          'Yêu cầu Check-in',
+          'Bạn cần check in để tiếp tục làm việc',
+          [
+            {
+              text: 'Hủy',
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: 'Check-in ngay',
+              onPress: () => navigation.navigate('CheckIn'),
+            },
+          ]
+        );
+        return;
+      }
+      fetchOrdersByArea();
+    }
+  }, [isCheckedIn, checkInLoading]);
 
   const fetchOrdersByArea = async () => {
     try {
