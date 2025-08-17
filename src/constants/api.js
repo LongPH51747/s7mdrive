@@ -22,6 +22,8 @@ export const API_CONFIG = {
     // Work endpoints
     WORK_BY_SHIPPER: '/api/work/getWorkByShipper',
     WORK_CREATE: '/api/work',
+    WORK_CHECKIN: '/api/work/checkin',
+    WORK_ORDER_SUCCESS: '/api/work/order-success',
   },
 
   // Timeout

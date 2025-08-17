@@ -7,22 +7,29 @@ import {
   TouchableOpacity,
   StatusBar,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
+import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
-import {statisticsService} from '../../services';
+import {statisticsService, orderService} from '../../services';
 
 const DashboardScreen = () => {
   const {user} = useAuth();
+  const {isCheckedIn, refreshCheckInStatus} = useCheckIn();
   const navigation = useNavigation();
   const [statistics, setStatistics] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [orderCount, setOrderCount] = useState(0);
 
   useEffect(() => {
     fetchStatistics();
-  }, []);
+    if (isCheckedIn) {
+      fetchOrderCount();
+    }
+  }, [isCheckedIn]);
 
   const fetchStatistics = async () => {
     try {
@@ -46,9 +53,40 @@ const DashboardScreen = () => {
     }
   };
 
+  const fetchOrderCount = async () => {
+    try {
+      // Lấy thông tin khu vực từ user
+      const province = user?.post_office_name || 'Hà Nội';
+      const ward = user?.address_shipping?.split(',')[0] || 'Xuân Phương';
+      
+      console.log('📊 Fetching order count for area:', {ward, province});
+      
+      const data = await orderService.getOrdersByArea(province, ward);
+      
+      // Đảm bảo data là array
+      const ordersArray = Array.isArray(data) ? data : [];
+      
+      // Lọc chỉ những đơn hàng có trạng thái số: 2, 3, 4, 5, 6
+      const activeOrders = ordersArray.filter(order => {
+        const status = parseInt(order.status);
+        return [2, 3, 4, 5, 6].includes(status);
+      });
+      
+      setOrderCount(activeOrders.length);
+      console.log('📊 Order count updated:', activeOrders.length);
+    } catch (error) {
+      console.error('Error fetching order count:', error);
+      setOrderCount(0);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchStatistics();
+    await Promise.all([
+      fetchStatistics(),
+      refreshCheckInStatus(),
+      isCheckedIn ? fetchOrderCount() : Promise.resolve()
+    ]);
     setRefreshing(false);
   };
 
@@ -64,6 +102,48 @@ const DashboardScreen = () => {
       style: 'currency',
       currency: 'VND',
     }).format(amount);
+  };
+
+  const handleOrderListPress = () => {
+    if (!isCheckedIn) {
+      Alert.alert(
+        'Yêu cầu Check-in',
+        'Bạn cần check in để tiếp tục làm việc',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Check-in ngay',
+            onPress: () => navigation.navigate('CheckIn'),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate('OrderList');
+  };
+
+  const handleOrdersPress = () => {
+    if (!isCheckedIn) {
+      Alert.alert(
+        'Yêu cầu Check-in',
+        'Bạn cần check in để tiếp tục làm việc',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Check-in ngay',
+            onPress: () => navigation.navigate('CheckIn'),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate('Orders');
   };
 
   const QuickActionButton = ({title, onPress, color}) => (
@@ -120,30 +200,40 @@ const DashboardScreen = () => {
         }>
         {/* Thống kê tổng quan */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thống kê hôm nay</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Thống kê hôm nay</Text>
+            <View style={[styles.checkInIndicator, {backgroundColor: isCheckedIn ? '#4CAF50' : '#FF5722'}]}>
+              <Icon name={isCheckedIn ? 'check-circle' : 'schedule'} size={16} color="white" />
+              <Text style={styles.checkInText}>{isCheckedIn ? 'Đã check-in' : 'Chưa check-in'}</Text>
+            </View>
+          </View>
           <View style={styles.statsGrid}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('OrderList')}
+              onPress={handleOrderListPress}
               style={{flex: 1}}>
               <StatCard
                 title="Chuyến đi"
-                value={statistics?.today.total_orders || 0}
+                value={orderCount}
                 subtitle="đơn"
                 color="#4CAF50"
               />
             </TouchableOpacity>
-            <StatCard
-              title="Năng suất"
-              value={statistics?.today.completed || 0}
-              subtitle="%"
-              color="#2196F3"
-            />
-            <StatCard
-              title="Thu nhập"
-              value={statistics?.today.revenue || 0}
-              subtitle="VND"
-              color="#FF9800"
-            />
+            <View style={{flex: 1}}>
+              <StatCard
+                title="Năng suất"
+                value={statistics?.today.completed || 0}
+                subtitle="%"
+                color="#2196F3"
+              />
+            </View>
+            <View style={{flex: 1}}>
+              <StatCard
+                title="Thu nhập"
+                value={statistics?.today.revenue || 0}
+                subtitle="VND"
+                color="#FF9800"
+              />
+            </View>
           </View>
         </View>
 
@@ -154,7 +244,7 @@ const DashboardScreen = () => {
             <QuickActionButton
               title="Bán hàng"
               color="#FF5722"
-              onPress={() => navigation.navigate('Orders')}
+              onPress={handleOrdersPress}
             />
             <QuickActionButton
               title="Hỗ trợ khách hàng"
@@ -172,7 +262,7 @@ const DashboardScreen = () => {
             <QuickActionButton
               title="Thêm đơn lẻ"
               color="#9C27B0"
-              onPress={() => navigation.navigate('Orders')}
+              onPress={handleOrdersPress}
             />
             <QuickActionButton
               title="In vận đơn"
@@ -308,11 +398,29 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+  },
+  checkInIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  checkInText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 5,
   },
   statsGrid: {
     flexDirection: 'row',

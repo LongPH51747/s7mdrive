@@ -237,9 +237,9 @@ export const checkDistanceToPostOfficeWithUserData = async (user) => {
       distance: distance,
       currentLocation: currentLocation,
       postOffice: postOfficeData,
-      isWithinRange: distance <= 100
+      isWithinRange: distance <= 20000000
     };
-
+    //++++++++++++++++++++===================================================================================++++++++++++
     console.log('✅ Kết quả cuối cùng:', result);
     console.log('=== KẾT THÚC KIỂM TRA KHOẢNG CÁCH (USER DATA) ===\n');
     
@@ -323,9 +323,9 @@ export const checkDistanceToPostOffice = async (userId) => {
       distance: distance,
       currentLocation: currentLocation,
       postOffice: userPostOffice,
-      isWithinRange: distance <= 2000
+      isWithinRange: distance <= 20000000
     };
-
+    // ++++========================================================================+++++++++++++=======================
     console.log('✅ Kết quả cuối cùng:', result);
     console.log('=== KẾT THÚC KIỂM TRA KHOẢNG CÁCH ===\n');
     

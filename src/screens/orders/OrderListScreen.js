@@ -10,24 +10,49 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
+import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
-import {orderService} from '../../services';
+import {orderService, confirmOrderSuccess} from '../../services';
+
 
 const OrderListScreen = () => {
   const {user} = useAuth();
+  const {isCheckedIn, loading: checkInLoading} = useCheckIn();
   const navigation = useNavigation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [processingOrder, setProcessingOrder] = useState(null);
 
   useEffect(() => {
-    fetchOrdersByArea();
-  }, []);
+    if (!checkInLoading) {
+      if (!isCheckedIn) {
+        Alert.alert(
+          'Yêu cầu Check-in',
+          'Bạn cần check in để tiếp tục làm việc',
+          [
+            {
+              text: 'Hủy',
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: 'Check-in ngay',
+              onPress: () => navigation.navigate('CheckIn'),
+            },
+          ]
+        );
+        return;
+      }
+      fetchOrdersByArea();
+    }
+  }, [isCheckedIn, checkInLoading]);
 
   const fetchOrdersByArea = async () => {
     try {
@@ -56,13 +81,13 @@ const OrderListScreen = () => {
       // Đảm bảo data là array
       const ordersArray = Array.isArray(data) ? data : [];
       
-      // Lọc chỉ những đơn hàng có trạng thái số: 2, 3, 4, 5, 6
+      // Lọc những đơn hàng có trạng thái số: 2, 3, 4, 5, 6, 7
       const activeOrders = ordersArray.filter(order => {
         console.log('Processing order:', order);
         console.log('Order status:', order.status, 'Type:', typeof order.status);
         
         const status = parseInt(order.status);
-        const isValidStatus = [2, 3, 4, 5, 6].includes(status);
+        const isValidStatus = [2, 3, 4, 5, 6, 7].includes(status);
         
         console.log('Parsed status:', status, 'Is valid:', isValidStatus);
         return isValidStatus;
@@ -86,6 +111,32 @@ const OrderListScreen = () => {
     setRefreshing(false);
   };
 
+  // Xin quyền truy cập camera
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Quyền truy cập camera',
+            message: 'Ứng dụng cần quyền truy cập camera để chụp ảnh xác nhận đơn hàng',
+            buttonNeutral: 'Hỏi lại sau',
+            buttonNegative: 'Từ chối',
+            buttonPositive: 'Đồng ý',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    } else {
+      return true; // iOS sẽ hỏi quyền khi launch camera
+    }
+  };
+
+
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -96,10 +147,11 @@ const OrderListScreen = () => {
   const getStatusText = (status) => {
     const statusMap = {
       2: 'Đã xác nhận',
-      3: 'Đang giao',
-      4: 'Đã giao',
-      5: 'Hoàn thành',
-      6: 'Đã hủy'
+      3: 'Rời kho',
+      4: 'Tới bưu cục',
+      5: 'Shipper nhận hàng',
+      6: 'Đang giao',
+      7: 'Giao thành công'
     };
     return statusMap[status] || `Trạng thái ${status}`;
   };
@@ -107,10 +159,11 @@ const OrderListScreen = () => {
   const getStatusColor = (status) => {
     const colorMap = {
       2: '#FF9800', // Orange - Đã xác nhận
-      3: '#2196F3', // Blue - Đang giao
-      4: '#4CAF50', // Green - Đã giao
-      5: '#4CAF50', // Green - Hoàn thành
-      6: '#F44336'  // Red - Đã hủy
+      3: '#2196F3', // Blue - Rời kho
+      4: '#9C27B0', // Purple - Tới bưu cục
+      5: '#FF5722', // Deep Orange - Shipper nhận hàng
+      6: '#4CAF50', // Green - Đang giao
+      7: '#00BCD4'  // Cyan - Giao thành công
     };
     return colorMap[status] || '#666';
   };
@@ -149,51 +202,98 @@ const OrderListScreen = () => {
   };
 
   const handleCompleteOrder = async (orderId, orderCode) => {
-    Alert.alert(
-      'Xác nhận hoàn thành',
-      `Bạn có chắc chắn muốn đánh dấu đơn hàng ${orderCode} là "Giao thành công"?`,
-      [
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
-        {
-          text: 'Hoàn thành',
-          style: 'default',
-          onPress: async () => {
-            try {
-              const result = await orderService.updateOrderStatusToDelivered(orderId);
-              
-              if (result.success) {
-                Alert.alert(
-                  'Thành công',
-                  result.message,
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        // Refresh danh sách đơn hàng
-                        fetchOrdersByArea();
-                      }
-                    }
-                  ]
-                );
-              } else {
-                Alert.alert('Lỗi', result.message);
+    // Tìm order object từ orderId
+    const order = orders.find(o => o._id === orderId);
+    if (!order) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin đơn hàng');
+      return;
+    }
+
+    try {
+      console.log('📸 Bắt đầu xử lý hoàn thành đơn hàng:', orderId);
+      console.log('📸 Loading ImagePicker dynamically...');
+      console.log('📸 confirmOrderSuccess function:', confirmOrderSuccess);
+      setProcessingOrder(orderId);
+      
+      // Xin quyền camera
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        Alert.alert('Lỗi', 'Cần quyền truy cập camera để chụp ảnh xác nhận');
+        setProcessingOrder(null);
+        return;
+      }
+
+      // Mở camera
+      const ImagePicker = require('react-native-image-picker');
+      const result = await ImagePicker.launchCamera({
+        mediaType: 'photo',
+        quality: 0.8,
+        includeBase64: false,
+        saveToPhotos: false,
+      });
+
+      if (result.didCancel) {
+        console.log('📸 Người dùng hủy chụp ảnh');
+        setProcessingOrder(null);
+        return;
+      }
+
+      if (result.errorCode) {
+        console.error('📸 Lỗi camera:', result.errorMessage);
+        Alert.alert('Lỗi', 'Không thể mở camera: ' + result.errorMessage);
+        setProcessingOrder(null);
+        return;
+      }
+
+      const imageUri = result.assets?.[0]?.uri;
+      if (!imageUri) {
+        console.error('📸 Không có ảnh được chụp');
+        Alert.alert('Lỗi', 'Không thể lấy ảnh từ camera');
+        setProcessingOrder(null);
+        return;
+      }
+
+      console.log('📸 Ảnh đã chụp:', imageUri);
+
+      // Gọi API xác nhận đơn hàng hoàn thành
+      const confirmResult = await confirmOrderSuccess(user.id, orderId, imageUri);
+      
+      if (confirmResult.success) {
+        console.log('✅ Đơn hàng đã được xác nhận hoàn thành');
+        Alert.alert(
+          'Thành công',
+          'Đơn hàng đã được xác nhận hoàn thành!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Refresh danh sách đơn hàng
+                fetchOrdersByArea();
               }
-            } catch (error) {
-              console.error('Error completing order:', error);
-              Alert.alert('Lỗi', 'Không thể hoàn thành đơn hàng. Vui lòng thử lại.');
             }
-          },
-        },
-      ]
-    );
+          ]
+        );
+      } else {
+        console.error('❌ Lỗi khi xác nhận đơn hàng:', confirmResult.error);
+        Alert.alert('Lỗi', 'Không thể xác nhận đơn hàng: ' + confirmResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Lỗi khi xử lý hoàn thành đơn hàng:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi xử lý đơn hàng');
+    } finally {
+      setProcessingOrder(null);
+    }
   };
 
-  const renderOrderItem = ({item}) => (
+  const renderOrderItem = ({item}) => {
+    const isCompleted = parseInt(item.status) === 7;
+    
+    return (
     <TouchableOpacity
-      style={styles.orderItem}
+      style={[
+        styles.orderItem,
+        isCompleted && styles.completedOrderItem
+      ]}
       onPress={() => navigation.navigate('OrderDetail', {orderId: item._id})}>
       <View style={styles.orderHeader}>
         <View style={styles.orderInfo}>
@@ -258,18 +358,26 @@ const OrderListScreen = () => {
             #{item._id.slice(-8).toUpperCase()}
           </Text>
         </View>
-        {[2, 3, 4].includes(parseInt(item.status)) && (
+        {[2, 3, 4, 5, 6].includes(parseInt(item.status)) && !isCompleted && (
           <TouchableOpacity 
-            style={styles.completeButton}
+            style={[styles.completeButton, processingOrder === item._id && styles.completeButtonDisabled]}
             onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
+            disabled={processingOrder === item._id}
           >
-            <Icon name="check-circle" size={16} color="white" />
-            <Text style={styles.completeButtonText}>Hoàn thành</Text>
+            {processingOrder === item._id ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Icon name="check-circle" size={16} color="white" />
+            )}
+            <Text style={styles.completeButtonText}>
+              {processingOrder === item._id ? 'Đang xử lý...' : 'Hoàn thành'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -411,6 +519,11 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
+  completedOrderItem: {
+    backgroundColor: '#E8F5E8', // Màu nền xanh nhạt cho đơn hàng đã hoàn thành
+    borderLeftWidth: 4,
+    borderLeftColor: '#00BCD4', // Viền bên trái màu cyan
+  },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -492,6 +605,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
+  },
+  completeButtonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.7,
   },
   emptyState: {
     flex: 1,

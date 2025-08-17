@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
+import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
 import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
 import {hasCheckedInToday, getCheckedInDaysInMonth, createWorkRecord} from '../../services/workService';
@@ -21,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CheckInScreen = () => {
   const {user} = useAuth();
+  const {refreshCheckInStatus} = useCheckIn();
   const navigation = useNavigation();
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -58,19 +60,6 @@ const CheckInScreen = () => {
       }
     };
     
-    // Lấy danh sách ngày đã check-in trong tháng
-    const loadCheckedInDays = async () => {
-      if (user?.id) {
-        const checkedDays = await getCheckedInDaysInMonth(
-          user.id, 
-          selectedMonth.getFullYear(), 
-          selectedMonth.getMonth()
-        );
-        setCheckedInDays(checkedDays);
-        console.log('📅 Ngày đã check-in trong tháng:', checkedDays);
-      }
-    };
-    
     checkTodayStatus();
     loadCheckedInDays();
     
@@ -102,7 +91,18 @@ const CheckInScreen = () => {
     };
   }, [user?.id, selectedMonth]);
 
-
+  // Lấy danh sách ngày đã check-in trong tháng
+  const loadCheckedInDays = useCallback(async () => {
+    if (user?.id) {
+      const checkedDays = await getCheckedInDaysInMonth(
+        user.id, 
+        selectedMonth.getFullYear(), 
+        selectedMonth.getMonth()
+      );
+      setCheckedInDays(checkedDays);
+      console.log('📅 Ngày đã check-in trong tháng:', checkedDays);
+    }
+  }, [user?.id, selectedMonth]);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('vi-VN', {
@@ -224,6 +224,9 @@ const CheckInScreen = () => {
       
       // Reload dữ liệu từ API
       await loadCheckedInDays();
+      
+      // Refresh trạng thái check-in trong hook
+      refreshCheckInStatus();
       
       console.log('✅ Check-in thành công!');
       console.log('✅ Thông tin check-in:');
