@@ -3,15 +3,21 @@ import {API_CONFIG} from '../constants/api';
 
 class StatisticsService {
   // Lấy thống kê tổng quan
-  async getStatistics() {
+  async getStatistics(shipperId) {
     try {
-      const response = await externalApiClient.get(API_CONFIG.ENDPOINTS.STATISTICS);
+      if (!shipperId) {
+        console.error("❌ ShipperId is missing in getStatistics");
+        return null;
+      }
+      const url = API_CONFIG.ENDPOINTS.ORDER_BY_SHIPPER(shipperId);
+      const response = await externalApiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Get statistics error:', error);
+      console.error("Get statistics error:", error);
       return null;
     }
   }
+  
 
   // Lấy thống kê theo khoảng thời gian tùy chỉnh
   async getCustomStatistics(startDate, endDate, shipperId) {
@@ -38,7 +44,7 @@ class StatisticsService {
   // Lấy hiệu suất shipper
   async getShipperPerformance(shipperId) {
     try {
-      let url = `${API_CONFIG.ENDPOINTS.STATISTICS}/shipper-performance`;
+      let url = `${API_CONFIG.ENDPOINTS.ORDER_BY_SHIPPER}/shipper-performance`;
 
       if (shipperId) {
         url += `?shipper_id=${shipperId}`;
@@ -149,6 +155,67 @@ class StatisticsService {
     } catch (error) {
       console.error('Update statistics error:', error);
       return false;
+    }
+  }
+
+  // Lấy thống kê hôm nay cho shipper
+  async getTodayStatisticsByShipper(shipperId) {
+    try {
+      const url = API_CONFIG.ENDPOINTS.ORDER_BY_SHIPPER(shipperId);
+      const response = await externalApiClient.get(url);
+      const orders = Array.isArray(response.data) ? response.data : [];
+  
+      // Phòng xa: chỉ lấy đúng đơn thuộc shipper này
+      const shipperOrders = orders.filter(
+        o => String(o.shipper) === String(shipperId)
+      );
+  
+      // Mốc thời gian theo giờ máy (VN +07:00 là hợp lý vì server trả ISO có 'Z')
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  
+      const isToday = (o) => {
+        const d = new Date(o.updatedAt || o.createdAt);
+        return d >= startOfDay && d <= endOfDay;
+      };
+  
+      // Đơn giao thành công hôm nay (status = 7)
+      const deliveredToday = shipperOrders.filter(
+        o => Number(o.status) === 7 && isToday(o)
+      );
+  
+      // Tổng chuyến đi
+      const totalTrips = deliveredToday.length;
+  
+      // Tổng sản phẩm đã giao
+      const totalProducts = deliveredToday.reduce((sum, o) =>
+        sum + (o.orderItems?.reduce((s, i) => s + (Number(i.quantity) || 0), 0) || 0)
+      , 0);
+  
+      // Thu nhập hôm nay: chỉ tính COD
+      const totalRevenue = deliveredToday.reduce((sum, o) =>
+        String(o.payment_method || '').toUpperCase() === 'COD'
+          ? sum + (Number(o.total_amount) || 0)
+          : sum
+      , 0);
+  
+      // Năng suất = đơn giao thành công / tổng đơn hôm nay
+      const totalOrdersToday = shipperOrders.filter(isToday).length;
+      const productivity = totalOrdersToday
+        ? Math.round((totalTrips / totalOrdersToday) * 100)
+        : 0;
+  
+      return {
+        totalTrips,
+        totalProducts,
+        totalRevenue,
+        productivity,
+        todayOrders: deliveredToday,
+      };
+    } catch (error) {
+      console.error('Get today statistics by shipper error:', error);
+      return null;
     }
   }
 }
