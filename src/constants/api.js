@@ -9,14 +9,12 @@ export const API_CONFIG = {
 
   // Endpoints
   ENDPOINTS: {
-    USERS: '/users',
-    ORDERS: '/orders',
-    STATISTICS: '/statistics',
-    NOTIFICATIONS: '/notifications',
-    
+
     // Order service endpoints
     ORDER_FILTER_BY_AREA: '/api/order/filterOrderAddressByCityAndWard',
     ORDER_UPDATE_STATUS: '/api/order/updateStatus',
+    ORDER_BY_SHIPPER: (id) => `/api/order/getOrderByShipper/${id}`,
+
     
     // Auth endpoints
     SHIPPER_LOGIN: '/api/shipper/login',
