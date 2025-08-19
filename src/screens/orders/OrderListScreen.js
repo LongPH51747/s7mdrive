@@ -520,9 +520,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   completedOrderItem: {
-    backgroundColor: '#E8F5E8', // Màu nền xanh nhạt cho đơn hàng đã hoàn thành
+    backgroundColor: '#E8F5E8',
     borderLeftWidth: 4,
-    borderLeftColor: '#00BCD4', // Viền bên trái màu cyan
+    borderLeftColor: '#00BCD4',
   },
   orderHeader: {
     flexDirection: 'row',
