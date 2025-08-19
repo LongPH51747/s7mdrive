@@ -227,7 +227,7 @@ const DashboardScreen = () => {
           </View>
           <View style={styles.statsGrid}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('TodayStatsDetail', {todayStats})}
+              onPress={handleOrderListPress}
               style={{flex: 1}}>
               <StatCard
                 title="Chuyến đi"
@@ -247,7 +247,8 @@ const DashboardScreen = () => {
             <View style={{flex: 1}}>
               <StatCard
                 title="Thu nhập"
-                value={formatCurrency(todayStats?.totalRevenue || 0)}
+                // value={formatCurrency(todayStats?.totalRevenue || 0)}
+                value={0}
                 subtitle="VND"
                 color="#FF9800"
               />
@@ -283,9 +284,9 @@ const DashboardScreen = () => {
               onPress={handleOrdersPress}
             />
             <QuickActionButton
-              title="In vận đơn"
+              title="Thống kê"
               color="#FF9800"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Statistics')}
             />
             <QuickActionButton
               title="Lịch sử nộp tiền"

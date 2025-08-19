@@ -13,6 +13,8 @@ import MapTrackingScreen from '../screens/map/MapTrackingScreen';
 import HistoryScreen from '../screens/history/HistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ShipperInfoScreen from '../screens/profile/ShipperInfoScreen';
+import StatisticsScreen from '../screens/statistics/StatisticsScreen';
+
 
 const Tab = createBottomTabNavigator();
 const OrderStack = createStackNavigator();
@@ -34,6 +36,7 @@ const DashboardNavigator = () => {
       <OrderStack.Screen name="CheckIn" component={CheckInScreen} />
       <OrderStack.Screen name="OrderList" component={OrderListScreen} />
       <OrderStack.Screen name="ShipperInfo" component={ShipperInfoScreen} />
+      <OrderStack.Screen name="Statistics" component={StatisticsScreen} />
     </OrderStack.Navigator>
   );
 };
