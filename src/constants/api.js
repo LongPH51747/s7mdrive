@@ -13,6 +13,7 @@ export const API_CONFIG = {
     // Order service endpoints
     ORDER_FILTER_BY_AREA: '/api/order/filterOrderAddressByCityAndWard',
     ORDER_UPDATE_STATUS: '/api/order/updateStatus',
+    ORDER_RECEIVE_ALL: '/api/order/receiveOrder',
     ORDER_BY_SHIPPER: (id) => `/api/order/getOrderByShipper/${id}`,
 
     

@@ -28,6 +28,7 @@ const DashboardScreen = () => {
     productivity: 0,
     totalRevenue: 0,
   });
+  const [totalOrders, setTotalOrders] = useState(0);
 
   const [statistics, setStatistics] = useState({
     total_orders: 0,
@@ -41,8 +42,10 @@ const DashboardScreen = () => {
   useEffect(() => {
     fetchStatistics();
     if (isCheckedIn) {
-      fetchOrderCount();
-      fetchTodayStats();
+      fetchOrderCount().then(() => {
+        // Chỉ fetch today stats sau khi có orderCount và totalOrders
+        fetchTodayStats();
+      });
     }
   }, [isCheckedIn]);
 
@@ -90,10 +93,13 @@ const DashboardScreen = () => {
         return [2, 3, 4, 5, 6].includes(status);
       });
 
+      // Lưu tổng số đơn hàng (bao gồm cả đã hoàn thành)
+      setTotalOrders(ordersArray.length);
       setOrderCount(activeOrders.length);
     } catch (error) {
       console.error('❌ Error fetching order count:', error);
       setOrderCount(0);
+      setTotalOrders(0);
     }
   };
 
@@ -102,9 +108,13 @@ const DashboardScreen = () => {
       if (!user?._id) return;
       const stats = await statisticsService.getTodayStatisticsByShipper(user._id);
 
+      // Tính năng suất: tỷ lệ đơn hàng hoàn thành (status 7) / tổng số đơn hàng
+      const completedOrders = stats?.totalTrips || 0;
+      const productivity = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+
       setTodayStats({
         totalTrips: stats?.totalTrips || 0,
-        productivity: stats?.productivity || 0,
+        productivity: productivity,
         totalRevenue: stats?.totalRevenue || 0,
       });
     } catch (error) {
@@ -227,11 +237,11 @@ const DashboardScreen = () => {
           </View>
           <View style={styles.statsGrid}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('TodayStatsDetail', {todayStats})}
+              onPress={handleOrderListPress}
               style={{flex: 1}}>
               <StatCard
                 title="Chuyến đi"
-                value={todayStats?.totalTrips || 0}
+                value={orderCount || 0}
                 subtitle="đơn"
                 color="#4CAF50"
               />
@@ -240,14 +250,15 @@ const DashboardScreen = () => {
               <StatCard
                 title="Năng suất"
                 value={todayStats?.productivity || 0}
-                subtitle="%"
+                subtitle="% (Đã hoàn thành/Tổng số)"
                 color="#2196F3"
               />
             </View>
             <View style={{flex: 1}}>
               <StatCard
                 title="Thu nhập"
-                value={formatCurrency(todayStats?.totalRevenue || 0)}
+                // value={formatCurrency(todayStats?.totalRevenue || 0)}
+                value={0}
                 subtitle="VND"
                 color="#FF9800"
               />
@@ -283,9 +294,9 @@ const DashboardScreen = () => {
               onPress={handleOrdersPress}
             />
             <QuickActionButton
-              title="In vận đơn"
+              title="Thống kê"
               color="#FF9800"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Statistics')}
             />
             <QuickActionButton
               title="Lịch sử nộp tiền"

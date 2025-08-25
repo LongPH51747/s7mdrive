@@ -1,7 +1,7 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {Text} from 'react-native';
 
 // Screen imports
 import DashboardScreen from '../screens/main/DashboardScreen';
@@ -13,6 +13,8 @@ import MapTrackingScreen from '../screens/map/MapTrackingScreen';
 import HistoryScreen from '../screens/history/HistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ShipperInfoScreen from '../screens/profile/ShipperInfoScreen';
+import StatisticsScreen from '../screens/statistics/StatisticsScreen';
+
 
 const Tab = createBottomTabNavigator();
 const OrderStack = createStackNavigator();
@@ -34,6 +36,7 @@ const DashboardNavigator = () => {
       <OrderStack.Screen name="CheckIn" component={CheckInScreen} />
       <OrderStack.Screen name="OrderList" component={OrderListScreen} />
       <OrderStack.Screen name="ShipperInfo" component={ShipperInfoScreen} />
+      <OrderStack.Screen name="Statistics" component={StatisticsScreen} />
     </OrderStack.Navigator>
   );
 };
@@ -52,29 +55,29 @@ const MainNavigator = () => {
     <Tab.Navigator
       screenOptions={({route}) => ({
         tabBarIcon: ({focused, color, size}) => {
-          let iconName;
+          let iconText;
 
           switch (route.name) {
             case 'Dashboard':
-              iconName = 'dashboard';
+              iconText = '🏠';
               break;
             case 'Orders':
-              iconName = 'assignment';
+              iconText = '📦';
               break;
             case 'Map':
-              iconName = 'location-on';
+              iconText = '🗺️';
               break;
             case 'History':
-              iconName = 'history';
+              iconText = '📋';
               break;
             case 'Profile':
-              iconName = 'person';
+              iconText = '👤';
               break;
             default:
-              iconName = 'circle';
+              iconText = '●';
           }
 
-          return <Icon name={iconName} size={size} color={color} />;
+          return <Text style={{fontSize: size, color: color}}>{iconText}</Text>;
         },
         tabBarActiveTintColor: '#FF6B35',
         tabBarInactiveTintColor: '#8E8E93',

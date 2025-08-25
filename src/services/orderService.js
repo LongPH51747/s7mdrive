@@ -225,6 +225,89 @@ class OrderService {
       };
     }
   }
+
+  // Nhận đơn hàng (cập nhật trạng thái thành 6)
+  async receiveOrder(orderId, shipperId) {
+    try {
+      console.log('📦 OrderService: Bắt đầu nhận đơn hàng', { orderId, shipperId });
+      
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_UPDATE_STATUS}/${orderId}`;
+      
+      console.log('📦 OrderService: URL API:', url);
+      console.log('📦 OrderService: Request body:', { status: 6, id_shipper: shipperId });
+      
+      const response = await axios.patch(url, {
+        status: 6,
+        id_shipper: shipperId
+      }, {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('📦 OrderService: Response thành công:', response.data);
+      
+      return {
+        success: true,
+        data: response.data,
+        message: 'Nhận đơn hàng thành công'
+      };
+    } catch (error) {
+      console.error('📦 OrderService: Lỗi khi nhận đơn hàng:', error);
+      console.error('📦 OrderService: Error response:', error.response?.data);
+      console.error('📦 OrderService: Error status:', error.response?.status);
+      console.error('📦 OrderService: Error message:', error.message);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể nhận đơn hàng',
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+  }
+
+  // Nhận tất cả đơn hàng trạng thái 4
+  async receiveAllOrders(shipperId, orderIds) {
+    try {
+      console.log('📦 OrderService: Bắt đầu nhận tất cả đơn hàng', { shipperId, orderIds });
+      
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_RECEIVE_ALL}/${shipperId}`;
+      
+      console.log('📦 OrderService: URL API:', url);
+      console.log('📦 OrderService: Request body:', { id_order: orderIds });
+      
+      const response = await axios.patch(url, {
+        id_order: orderIds
+      }, {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('📦 OrderService: Response thành công:', response.data);
+      
+      return {
+        success: true,
+        data: response.data,
+        message: 'Nhận tất cả đơn hàng thành công'
+      };
+    } catch (error) {
+      console.error('📦 OrderService: Lỗi khi nhận tất cả đơn hàng:', error);
+      console.error('📦 OrderService: Error response:', error.response?.data);
+      console.error('📦 OrderService: Error status:', error.response?.status);
+      console.error('📦 OrderService: Error message:', error.message);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể nhận tất cả đơn hàng',
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+  }
 }
 
 export default new OrderService();

@@ -14,7 +14,6 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
@@ -30,6 +29,7 @@ const OrderListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [processingOrder, setProcessingOrder] = useState(null);
+  const [activeTab, setActiveTab] = useState('delivery'); // 'delivery' hoặc 'receive'
 
   useEffect(() => {
     if (!checkInLoading) {
@@ -54,8 +54,18 @@ const OrderListScreen = () => {
     }
   }, [isCheckedIn, checkInLoading]);
 
+  // useEffect riêng để theo dõi thay đổi tab
+  useEffect(() => {
+    if (isCheckedIn && !checkInLoading) {
+      console.log('🔄 useEffect: Tab thay đổi, gọi fetchOrdersByArea với tab:', activeTab);
+      fetchOrdersByArea();
+    }
+  }, [activeTab]);
+
   const fetchOrdersByArea = async () => {
     try {
+      console.log('🔄 fetchOrdersByArea: Bắt đầu fetch orders...');
+      console.log('🔄 fetchOrdersByArea: Tab hiện tại:', activeTab);
       setLoading(true);
       setError(null);
       
@@ -81,27 +91,42 @@ const OrderListScreen = () => {
       // Đảm bảo data là array
       const ordersArray = Array.isArray(data) ? data : [];
       
-      // Lọc những đơn hàng có trạng thái số: 2, 3, 4, 5, 6, 7
-      const activeOrders = ordersArray.filter(order => {
-        console.log('Processing order:', order);
-        console.log('Order status:', order.status, 'Type:', typeof order.status);
-        
-        const status = parseInt(order.status);
-        const isValidStatus = [2, 3, 4, 5, 6, 7].includes(status);
-        
-        console.log('Parsed status:', status, 'Is valid:', isValidStatus);
-        return isValidStatus;
-      });
+      // Lọc đơn hàng theo tab hiện tại
+      let filteredOrders;
+      if (activeTab === 'delivery') {
+        // Tab "Đơn giao": trạng thái 4, 6, 7, 9
+        console.log('🔄 fetchOrdersByArea: Đang lọc cho tab "Đơn giao" (status: 4,6,7,9)');
+        filteredOrders = ordersArray.filter(order => {
+          const status = parseInt(order.status);
+          const isValidStatus = status === 4 || status === 6 || status === 7 || status === 9;
+          console.log(`🔄 Order ${order._id}: status=${status}, isValid=${isValidStatus}`);
+          return isValidStatus;
+        });
+      } else {
+        // Tab "Đơn nhận": trạng thái 14, 15
+        console.log('🔄 fetchOrdersByArea: Đang lọc cho tab "Đơn nhận" (status: 14,15)');
+        filteredOrders = ordersArray.filter(order => {
+          const status = parseInt(order.status);
+          const isValidStatus = status === 14 || status === 15;
+          console.log(`🔄 Order ${order._id}: status=${status}, isValid=${isValidStatus}`);
+          return isValidStatus;
+        });
+      }
       
-      setOrders(activeOrders);
+      console.log('🔄 fetchOrdersByArea: Orders trước khi filter:', ordersArray.length);
+      console.log('🔄 fetchOrdersByArea: Orders sau khi filter:', filteredOrders.length);
+      console.log('🔄 fetchOrdersByArea: Filtered orders:', filteredOrders);
       
-      console.log('Orders fetched:', ordersArray.length, 'Active orders:', activeOrders.length);
-      console.log('Active orders:', activeOrders);
+      setOrders(filteredOrders);
+      
+      console.log('Orders fetched:', ordersArray.length, 'Filtered orders:', filteredOrders.length);
+      console.log('Filtered orders:', filteredOrders);
     } catch (error) {
       console.error('Error fetching orders by area:', error);
       setError('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
+      console.log('🔄 fetchOrdersByArea: Kết thúc fetch orders');
     }
   };
 
@@ -109,6 +134,13 @@ const OrderListScreen = () => {
     setRefreshing(true);
     await fetchOrdersByArea();
     setRefreshing(false);
+  };
+
+  // Hàm chuyển tab
+  const handleTabChange = (tab) => {
+    console.log('🔄 handleTabChange: Chuyển từ tab', activeTab, 'sang tab', tab);
+    setActiveTab(tab);
+    // Không cần gọi fetchOrdersByArea ở đây nữa, useEffect sẽ tự động gọi
   };
 
   // Xin quyền truy cập camera
@@ -151,7 +183,10 @@ const OrderListScreen = () => {
       4: 'Tới bưu cục',
       5: 'Shipper nhận hàng',
       6: 'Đang giao',
-      7: 'Giao thành công'
+      7: 'Giao thành công',
+      9: 'Đơn hàng mới',
+      14: 'Hoàn hàng',
+      15: 'Đơn hàng đã nhận'
     };
     return statusMap[status] || `Trạng thái ${status}`;
   };
@@ -160,10 +195,13 @@ const OrderListScreen = () => {
     const colorMap = {
       2: '#FF9800', // Orange - Đã xác nhận
       3: '#2196F3', // Blue - Rời kho
-      4: '#9C27B0', // Purple - Tới bưu cục
+      4: '#4CAF50', // Green - Tới bưu cục
       5: '#FF5722', // Deep Orange - Shipper nhận hàng
       6: '#4CAF50', // Green - Đang giao
-      7: '#00BCD4'  // Cyan - Giao thành công
+      7: '#00BCD4', // Cyan - Giao thành công
+      9: '#FF9800', // Orange - Đơn hàng mới
+      14: '#9C27B0', // Purple - Hoàn hàng
+      15: '#4CAF50'  // Green - Đơn hàng đã nhận
     };
     return colorMap[status] || '#666';
   };
@@ -285,16 +323,182 @@ const OrderListScreen = () => {
     }
   };
 
+  const handleReceiveOrder = async (orderId) => {
+    try {
+      console.log('📦 OrderListScreen: Bắt đầu nhận đơn hàng:', orderId);
+      console.log('📦 OrderListScreen: User ID:', user.id);
+      console.log('📦 OrderListScreen: User object:', user);
+      setProcessingOrder(orderId);
+      
+      // Gọi API cập nhật trạng thái đơn hàng thông qua orderService
+      console.log('📦 OrderListScreen: Gọi orderService.receiveOrder...');
+      const result = await orderService.receiveOrder(orderId, user.id);
+      
+      console.log('📦 OrderListScreen: Kết quả từ orderService:', result);
+      console.log('📦 OrderListScreen: Result success:', result.success);
+      console.log('📦 OrderListScreen: Result data:', result.data);
+      console.log('📦 OrderListScreen: Result message:', result.message);
+      
+      if (result.success) {
+        console.log('✅ Đơn hàng đã được nhận thành công:', result.data);
+        console.log('✅ Sẽ refresh danh sách đơn hàng...');
+        
+        Alert.alert(
+          'Thành công',
+          'Đơn hàng đã được nhận thành công!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                console.log('✅ User click OK, bắt đầu refresh danh sách...');
+                // Refresh danh sách đơn hàng
+                fetchOrdersByArea();
+              }
+            }
+          ]
+        );
+      } else {
+        console.error('❌ Lỗi khi nhận đơn hàng:', result.message);
+        console.error('❌ Error details:', result.error);
+        console.error('❌ Status code:', result.status);
+        
+        Alert.alert('Lỗi', `Không thể nhận đơn hàng: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Lỗi không mong muốn khi nhận đơn hàng:', error);
+      console.error('❌ Error stack:', error.stack);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi nhận đơn hàng');
+    } finally {
+      console.log('📦 OrderListScreen: Kết thúc xử lý, set processingOrder = null');
+      setProcessingOrder(null);
+    }
+  };
+
+  const handleCancelOrder = (orderId) => {
+    Alert.alert(
+      'Xác nhận hủy',
+      'Bạn có chắc chắn muốn hủy đơn hàng này?',
+      [
+        {
+          text: 'Không',
+          style: 'cancel',
+        },
+        {
+          text: 'Có',
+          onPress: () => {
+            console.log('Hủy đơn hàng:', orderId);
+            // TODO: Implement cancel order functionality
+            Alert.alert('Thông báo', 'Chức năng hủy đơn hàng sẽ được cập nhật sau');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAddNote = (orderId) => {
+    console.log('Thêm ghi chú cho đơn hàng:', orderId);
+    // TODO: Implement add note functionality
+    Alert.alert('Thông báo', 'Chức năng thêm ghi chú sẽ được cập nhật sau');
+  };
+
+  // Hàm nhận tất cả đơn hàng trạng thái 4
+  const handleReceiveAllOrders = async () => {
+    try {
+      // Lọc ra tất cả đơn hàng trạng thái 4
+      const status4Orders = orders.filter(order => parseInt(order.status) === 4);
+      
+      if (status4Orders.length === 0) {
+        Alert.alert('Thông báo', 'Không có đơn hàng nào để nhận');
+        return;
+      }
+
+      console.log('📦 handleReceiveAllOrders: Bắt đầu nhận tất cả đơn hàng trạng thái 4');
+      console.log('📦 Số lượng đơn hàng cần nhận:', status4Orders.length);
+      console.log('📦 Danh sách ID đơn hàng:', status4Orders.map(o => o._id));
+      
+      // Hiển thị xác nhận
+      Alert.alert(
+        'Xác nhận nhận đơn',
+        `Bạn có chắc chắn muốn nhận ${status4Orders.length} đơn hàng?`,
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Nhận tất cả',
+            onPress: async () => {
+              try {
+                setProcessingOrder('all'); // Đánh dấu đang xử lý
+                
+                // Gọi API nhận tất cả đơn hàng thông qua orderService
+                const result = await orderService.receiveAllOrders(
+                  user.id, 
+                  status4Orders.map(order => order._id)
+                );
+                
+                console.log('📦 OrderListScreen: Kết quả từ orderService:', result);
+                
+                if (result.success) {
+                  console.log('✅ Nhận tất cả đơn hàng thành công:', result.data);
+                  
+                  Alert.alert(
+                    'Thành công',
+                    `Đã nhận thành công ${status4Orders.length} đơn hàng!`,
+                    [
+                      {
+                        text: 'OK',
+                        onPress: () => {
+                          // Refresh danh sách đơn hàng
+                          fetchOrdersByArea();
+                        }
+                      }
+                    ]
+                  );
+                } else {
+                  console.error('❌ Lỗi khi nhận tất cả đơn hàng:', result.message);
+                  console.error('❌ Error details:', result.error);
+                  console.error('❌ Status code:', result.status);
+                  
+                  Alert.alert('Lỗi', `Không thể nhận tất cả đơn hàng: ${result.message}`);
+                }
+              } catch (error) {
+                console.error('❌ Lỗi khi nhận tất cả đơn hàng:', error);
+                Alert.alert('Lỗi', 'Có lỗi xảy ra khi nhận tất cả đơn hàng');
+              } finally {
+                setProcessingOrder(null);
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Lỗi không mong muốn:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+    }
+  };
+
   const renderOrderItem = ({item}) => {
-    const isCompleted = parseInt(item.status) === 7;
+    const orderStatus = parseInt(item.status);
+    const isStatus4 = orderStatus === 4;
+    const isStatus6 = orderStatus === 6;
+    const isStatus14 = orderStatus === 14;
     
     return (
     <TouchableOpacity
       style={[
         styles.orderItem,
-        isCompleted && styles.completedOrderItem
+        isStatus4 && styles.status4OrderItem,
+        isStatus6 && styles.status6OrderItem,
+        isStatus14 && styles.status14OrderItem
       ]}
-      onPress={() => navigation.navigate('OrderDetail', {orderId: item._id})}>
+      onPress={() => {
+        // Cho phép click vào đơn hàng trạng thái 6 và 14
+        if (isStatus6 || isStatus14) {
+          navigation.navigate('OrderDetail', {orderId: item._id});
+        }
+      }}
+      disabled={isStatus4}>
       <View style={styles.orderHeader}>
         <View style={styles.orderInfo}>
           <Text style={styles.customerName}>
@@ -304,49 +508,55 @@ const OrderListScreen = () => {
             {getStatusText(item.status)}
           </Text>
         </View>
-        <Icon name="chevron-right" size={24} color="#666" />
+        {(isStatus6 || isStatus14) && <Text style={styles.chevronIcon}>→</Text>}
       </View>
 
       <View style={styles.orderDetails}>
         <View style={styles.detailRow}>
-          <Icon name="location-on" size={16} color="#666" />
-          <Text style={styles.detailText} numberOfLines={2}>
-            {item.id_address?.addressDetail || 'Không có địa chỉ'}
-          </Text>
+          <Text style={styles.iconText}>📍</Text>
+          <TouchableOpacity
+            onPress={() => handleOpenMaps(item.id_address)}
+            style={styles.addressContainer}>
+            <Text style={[styles.detailText, styles.addressText]} numberOfLines={2}>
+              {item.id_address?.addressDetail || 'Không có địa chỉ'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-                 <View style={styles.detailRow}>
-           <Icon name="phone" size={16} color="#666" />
-           <TouchableOpacity
-             onPress={() => handleCallPhone(item.id_address?.phone_number)}
-             style={styles.phoneContainer}>
-             <Text style={[styles.detailText, styles.phoneText]}>
-               {item.id_address?.phone_number || 'Không có số điện thoại'}
-             </Text>
-             {item.id_address?.phone_number && (
-               <Icon name="call" size={16} color="#4CAF50" style={styles.callIcon} />
-             )}
-           </TouchableOpacity>
-         </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.iconText}>📞</Text>
+          {(isStatus6 || isStatus14) ? (
+            <TouchableOpacity
+              onPress={() => handleCallPhone(item.id_address?.phone_number)}
+              style={styles.phoneContainer}>
+              <Text style={[styles.detailText, styles.phoneText]}>
+                {item.id_address?.phone_number || 'Không có số điện thoại'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.detailText}>
+              {item.id_address?.phone_number || 'Không có số điện thoại'}
+            </Text>
+          )}
+        </View>
 
-                 <View style={styles.detailRow}>
-           <Icon name="account-balance-wallet" size={16} color="#666" />
-           <Text style={styles.amountText}>
-             Thu hộ: {formatCurrency(item.payment_method === "COD" ? item.total_amount : 0)}
-           </Text>
-         </View>
+        {/* Chỉ hiển thị thu hộ cho trạng thái 4, 6, 7, không hiển thị cho trạng thái 14 */}
+        {(isStatus4 || isStatus6 || orderStatus === 7) && (
+          <View style={styles.detailRow}>
+            <Text style={styles.iconText}>💰</Text>
+            <Text style={styles.amountText}>
+              Thu hộ: {formatCurrency(item.payment_method === "COD" ? item.total_amount : 0)}
+            </Text>
+          </View>
+        )}
 
-                 <View style={styles.detailRow}>
-           <Icon name="directions" size={16} color="#666" />
-           <TouchableOpacity
-             onPress={() => handleOpenMaps(item.id_address)}
-             style={styles.mapsContainer}>
-             <Text style={[styles.detailText, styles.mapsText]}>
-               Chỉ đường bằng maps
-             </Text>
-             <Icon name="launch" size={16} color="#2196F3" style={styles.mapsIcon} />
-           </TouchableOpacity>
-         </View>
+        {/* Ghi chú từ user - luôn hiển thị */}
+        <View style={styles.detailRow}>
+          <Text style={styles.iconText}>📝</Text>
+          <Text style={styles.detailText} numberOfLines={3}>
+            Ghi chú: {item.user_note || 'Không có ghi chú'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.orderFooter}>
@@ -358,20 +568,68 @@ const OrderListScreen = () => {
             #{item._id.slice(-8).toUpperCase()}
           </Text>
         </View>
-        {[2, 3, 4, 5, 6].includes(parseInt(item.status)) && !isCompleted && (
+        
+        {/* Button cho đơn hàng trạng thái 4 */}
+        {isStatus4 && (
           <TouchableOpacity 
-            style={[styles.completeButton, processingOrder === item._id && styles.completeButtonDisabled]}
-            onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
+            style={[styles.receiveButton, processingOrder === item._id && styles.receiveButtonDisabled]}
+            onPress={() => handleReceiveOrder(item._id)}
             disabled={processingOrder === item._id}
           >
             {processingOrder === item._id ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Icon name="check-circle" size={16} color="white" />
+              <Text style={styles.receiveButtonText}>📦</Text>
             )}
-            <Text style={styles.completeButtonText}>
-              {processingOrder === item._id ? 'Đang xử lý...' : 'Hoàn thành'}
+            <Text style={styles.receiveButtonText}>
+              {processingOrder === item._id ? 'Đang xử lý...' : 'Nhận đơn'}
             </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Buttons cho đơn hàng trạng thái 6 */}
+        {isStatus6 && (
+          <View style={styles.status6Buttons}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => handleCancelOrder(item._id)}
+            >
+              <Text style={styles.cancelButtonText}>❌</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.noteButton}
+              onPress={() => handleAddNote(item._id)}
+            >
+              <Text style={styles.noteButtonText}>📝</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.completeButton, processingOrder === item._id && styles.completeButtonDisabled]}
+              onPress={() => handleCompleteOrder(item._id, `#${item._id.slice(-8).toUpperCase()}`)}
+              disabled={processingOrder === item._id}
+            >
+              {processingOrder === item._id ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.checkIcon}>✅</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Button "Nhận hàng" cho đơn hàng trạng thái 14 */}
+        {isStatus14 && (
+          <TouchableOpacity 
+            style={styles.receiveItemButton}
+            onPress={() => {
+              console.log('Nhận hàng cho đơn hàng:', item._id);
+              // TODO: Implement receive item functionality
+              Alert.alert('Thông báo', 'Chức năng nhận hàng sẽ được cập nhật sau');
+            }}
+          >
+            <Text style={styles.receiveItemButtonText}>📦</Text>
+            <Text style={styles.receiveItemButtonText}>Nhận hàng</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -381,7 +639,7 @@ const OrderListScreen = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="local-shipping" size={64} color="#ccc" />
+      <Text style={styles.emptyStateIcon}>🚚</Text>
       <Text style={styles.emptyStateTitle}>Không có đơn hàng</Text>
       <Text style={styles.emptyStateSubtitle}>
         Hiện tại không có đơn hàng nào đang hoạt động trong khu vực của bạn
@@ -391,7 +649,7 @@ const OrderListScreen = () => {
 
   const renderErrorState = () => (
     <View style={styles.emptyState}>
-      <Icon name="error-outline" size={64} color="#f44336" />
+      <Text style={styles.emptyStateIcon}>❌</Text>
       <Text style={styles.emptyStateTitle}>Có lỗi xảy ra</Text>
       <Text style={styles.emptyStateSubtitle}>{error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={fetchOrdersByArea}>
@@ -414,12 +672,31 @@ const OrderListScreen = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="white" />
+            <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-                     <Text style={styles.headerTitle}>Đơn hàng đang hoạt động</Text>
+          <Text style={styles.headerTitle}>Quản lý đơn hàng</Text>
           <View style={styles.headerRight}>
             <Text style={styles.areaText}>{user?.address_shipping}</Text>
           </View>
+        </View>
+        
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'delivery' && styles.activeTabButton]}
+            onPress={() => handleTabChange('delivery')}>
+            <Text style={[styles.tabText, activeTab === 'delivery' && styles.activeTabText]}>
+              Đơn giao
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'receive' && styles.activeTabButton]}
+            onPress={() => handleTabChange('receive')}>
+            <Text style={[styles.tabText, activeTab === 'receive' && styles.activeTabText]}>
+              Đơn nhận
+            </Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -444,11 +721,31 @@ const OrderListScreen = () => {
                      ListHeaderComponent={
              <View style={styles.listHeader}>
                <Text style={styles.listHeaderTitle}>
-                 Tổng cộng: {orders.length} đơn hàng đang hoạt động
+                 {activeTab === 'delivery' 
+                   ? `Tổng cộng: ${orders.length} đơn hàng giao` 
+                   : `Tổng cộng: ${orders.length} đơn hàng nhận`
+                 }
                </Text>
              </View>
            }
         />
+      )}
+
+      {/* FAB Nhận tất cả - chỉ hiển thị ở tab Đơn giao và có đơn hàng trạng thái 4 */}
+      {activeTab === 'delivery' && orders.some(order => parseInt(order.status) === 4) && (
+        <TouchableOpacity
+          style={[styles.fab, processingOrder === 'all' && styles.fabDisabled]}
+          onPress={handleReceiveAllOrders}
+          disabled={processingOrder === 'all'}>
+          {processingOrder === 'all' ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <>
+              <Text style={styles.fabIcon}>📦</Text>
+              <Text style={styles.fabText}>Nhận tất cả đơn hàng</Text>
+            </>
+          )}
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -471,6 +768,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 5,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: 'white',
   },
   headerTitle: {
     fontSize: 18,
@@ -544,6 +845,11 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '500',
   },
+  chevronIcon: {
+    fontSize: 24,
+    color: '#666',
+    fontWeight: 'bold',
+  },
   orderDetails: {
     marginBottom: 10,
   },
@@ -551,6 +857,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
+  },
+  iconText: {
+    fontSize: 14,
+    marginRight: 8,
   },
   detailText: {
     fontSize: 14,
@@ -585,12 +895,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   completeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#C8E6C9', // Light green background
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -599,9 +910,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    width: 50,
+    height: 35,
+  },
+  checkIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: '#2E7D32', // Darker green text
   },
   completeButtonText: {
-    color: 'white',
+    color: '#2E7D32', // Darker green text
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
@@ -615,6 +933,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 50,
+  },
+  emptyStateIcon: {
+    fontSize: 50,
+    marginBottom: 15,
   },
   emptyStateTitle: {
     fontSize: 18,
@@ -660,20 +982,214 @@ const styles = StyleSheet.create({
      color: '#4CAF50',
      textDecorationLine: 'underline',
    },
-   callIcon: {
-     marginLeft: 8,
-   },
-   mapsContainer: {
-     flexDirection: 'row',
-     alignItems: 'center',
+   addressContainer: {
      flex: 1,
    },
-   mapsText: {
+   addressText: {
      color: '#2196F3',
      textDecorationLine: 'underline',
    },
-   mapsIcon: {
-     marginLeft: 8,
+   receiveButton: {
+     backgroundColor: '#4CAF50',
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 16,
+     paddingVertical: 8,
+     borderRadius: 20,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+   },
+   receiveButtonText: {
+     color: 'white',
+     fontSize: 12,
+     fontWeight: 'bold',
+     marginLeft: 4,
+   },
+   receiveButtonDisabled: {
+     backgroundColor: '#ccc',
+     opacity: 0.7,
+   },
+   status6Buttons: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     marginTop: 10,
+     paddingHorizontal: 10,
+     gap: 15,
+   },
+   cancelButton: {
+     backgroundColor: '#FFCDD2', // Light red background
+     alignItems: 'center',
+     justifyContent: 'center',
+     width: 55,
+     height: 38,
+     borderRadius: 19,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+   },
+   cancelButtonText: {
+     fontSize: 16,
+     color: '#D32F2F', // Darker red text
+     fontWeight: 'bold',
+   },
+   noteButton: {
+     backgroundColor: '#E3F2FD', // Light blue background
+     alignItems: 'center',
+     justifyContent: 'center',
+     width: 55,
+     height: 38,
+     borderRadius: 19,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+   },
+   noteButtonText: {
+     fontSize: 16,
+     color: '#1976D2', // Darker blue text
+     fontWeight: 'bold',
+   },
+   completeButton: {
+     backgroundColor: '#C8E6C9', // Light green background
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingHorizontal: 16,
+     paddingVertical: 8,
+     borderRadius: 19,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+     width: 55,
+     height: 38,
+   },
+   status4OrderItem: {
+     backgroundColor: '#E8F5E8', // Light green for status 4
+     borderLeftWidth: 4,
+     borderLeftColor: '#4CAF50',
+   },
+   status6OrderItem: {
+     backgroundColor: '#F0F8FF', // Light blue for status 6
+     borderLeftWidth: 4,
+     borderLeftColor: '#2196F3',
+   },
+   status14OrderItem: {
+     backgroundColor: '#F0F8FF', // Light blue for status 14
+     borderLeftWidth: 4,
+     borderLeftColor: '#2196F3',
+   },
+   status14Info: {
+     marginTop: 10,
+     alignItems: 'center',
+   },
+   status14Text: {
+     fontSize: 14,
+     color: '#2196F3',
+     fontWeight: 'bold',
+   },
+   tabContainer: {
+     flexDirection: 'row',
+     justifyContent: 'space-around',
+     backgroundColor: 'rgba(255,255,255,0.2)',
+     borderRadius: 20,
+     marginTop: 10,
+     paddingVertical: 5,
+     paddingHorizontal: 10,
+   },
+   tabButton: {
+     paddingVertical: 8,
+     paddingHorizontal: 15,
+     borderRadius: 15,
+   },
+   activeTabButton: {
+     backgroundColor: 'white',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.2,
+     shadowRadius: 4,
+     elevation: 3,
+   },
+   tabText: {
+     fontSize: 14,
+     fontWeight: 'bold',
+     color: 'white',
+   },
+   activeTabText: {
+     color: '#FF6B35',
+   },
+   fab: {
+     position: 'absolute',
+     bottom: 20,
+     left: 20,
+     right: 20,
+     backgroundColor: '#FF6B35',
+     borderRadius: 25,
+     height: 50,
+     justifyContent: 'center',
+     alignItems: 'center',
+     flexDirection: 'row',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.2,
+     shadowRadius: 4,
+     elevation: 5,
+   },
+   fabDisabled: {
+     backgroundColor: '#ccc',
+     opacity: 0.7,
+   },
+   fabIcon: {
+     fontSize: 20,
+     color: 'white',
+     marginRight: 10,
+   },
+   fabText: {
+     fontSize: 16,
+     color: 'white',
+     fontWeight: 'bold',
+   },
+   receiveItemButton: {
+     backgroundColor: '#4CAF50',
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 16,
+     paddingVertical: 8,
+     borderRadius: 20,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+     marginTop: 10,
+   },
+   receiveItemButtonText: {
+     color: 'white',
+     fontSize: 12,
+     fontWeight: 'bold',
+     marginLeft: 4,
    },
 });
 
