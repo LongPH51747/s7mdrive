@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useNavigation} from '@react-navigation/native';
 
@@ -27,10 +27,10 @@ const ProfileScreen = () => {
   const MenuButton = ({icon, title, onPress, showArrow = true}) => (
     <TouchableOpacity style={styles.menuButton} onPress={onPress}>
       <View style={styles.menuButtonLeft}>
-        <Icon name={icon} size={24} color="#FF6B35" />
+        <Text style={styles.menuIcon}>{icon}</Text>
         <Text style={styles.menuButtonText}>{title}</Text>
       </View>
-      {showArrow && <Icon name="chevron-right" size={24} color="#ccc" />}
+      {showArrow && <Text style={styles.arrowIcon}>›</Text>}
     </TouchableOpacity>
   );
 
@@ -61,20 +61,20 @@ const ProfileScreen = () => {
       {/* Menu */}
       <View style={styles.menuContainer}>
         <MenuButton
-          icon="person"
+          icon="👤"
           title="Thông tin cá nhân"
           onPress={() => navigation.navigate('ShipperInfo')}
         />
-        <MenuButton icon="lock" title="Đổi mật khẩu" onPress={() => {}} />
+        <MenuButton icon="🔒" title="Đổi mật khẩu" onPress={() => {}} />
         <MenuButton
-          icon="notifications"
+          icon="🔔"
           title="Cài đặt thông báo"
           onPress={() => {}}
         />
-        <MenuButton icon="help" title="Hỗ trợ" onPress={() => {}} />
-        <MenuButton icon="info" title="Về ứng dụng" onPress={() => {}} />
+        <MenuButton icon="❓" title="Hỗ trợ" onPress={() => {}} />
+        <MenuButton icon="ℹ️" title="Về ứng dụng" onPress={() => {}} />
         <MenuButton
-          icon="logout"
+          icon="🚪"
           title="Đăng xuất"
           onPress={handleLogout}
           showArrow={false}
@@ -151,10 +151,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  menuIcon: {
+    fontSize: 24,
+    marginRight: 15,
+  },
   menuButtonText: {
-    marginLeft: 15,
     fontSize: 16,
     color: '#333',
+  },
+  arrowIcon: {
+    fontSize: 24,
+    color: '#ccc',
   },
 });
 

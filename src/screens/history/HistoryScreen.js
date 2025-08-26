@@ -6,14 +6,17 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
 import {statisticsService} from '../../services';
+import {useNavigation} from '@react-navigation/native';
 
 const HistoryScreen = () => {
   const {user} = useAuth();
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [totalCOD, setTotalCOD] = useState(0);
@@ -67,8 +70,15 @@ const HistoryScreen = () => {
       
       {/* Header với gradient */}
       <LinearGradient colors={['#FF6B35', '#FF8535']} style={styles.header}>
-        <Icon name="history" size={26} color="#fff" />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Lịch sử nộp tiền (COD)</Text>
+        <View style={styles.headerIcon}>
+          <Text style={styles.historyIcon}>📋</Text>
+        </View>
       </LinearGradient>
 
       {loading ? (
@@ -101,13 +111,35 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 18,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
     elevation: 4,
   },
-  headerTitle: {color: '#fff', fontSize: 18, fontWeight: 'bold', marginLeft: 10},
+  backButton: {
+    padding: 8,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    color: '#fff', 
+    fontSize: 18, 
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerIcon: {
+    width: 40,
+    alignItems: 'center',
+  },
+  historyIcon: {
+    fontSize: 24,
+  },
   orderItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',

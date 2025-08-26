@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,10 @@ import {
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useCheckIn} from '../../hooks/useCheckIn';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {statisticsService, orderService} from '../../services';
 
 const DashboardScreen = () => {
@@ -29,6 +29,14 @@ const DashboardScreen = () => {
     totalRevenue: 0,
   });
   const [totalOrders, setTotalOrders] = useState(0);
+  const [orderStatusCounts, setOrderStatusCounts] = useState({
+    status4: 0,  // Đơn hàng status 4
+    status6: 0,  // Đơn hàng status 6
+    status7: 0,  // Đơn hàng status 7
+    status9: 0,  // Đơn hàng status 9
+    status14: 0, // Đơn hàng status 14
+    status15: 0, // Đơn hàng status 15
+  });
 
   const [statistics, setStatistics] = useState({
     total_orders: 0,
@@ -43,11 +51,34 @@ const DashboardScreen = () => {
     fetchStatistics();
     if (isCheckedIn) {
       fetchOrderCount().then(() => {
-        // Chỉ fetch today stats sau khi có orderCount và totalOrders
+        // Chỉ fetch today stats sau khi có orderCount, totalOrders và orderStatusCounts
         fetchTodayStats();
       });
     }
   }, [isCheckedIn]);
+
+  // Cập nhật năng suất khi orderStatusCounts thay đổi
+  useEffect(() => {
+    if (isCheckedIn && orderStatusCounts) {
+      fetchTodayStats();
+    }
+  }, [orderStatusCounts]);
+
+  // Tự động refresh dữ liệu khi màn hình được focus (quay lại từ màn hình khác)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Dashboard focused - refreshing data...');
+      const refreshData = async () => {
+        await fetchStatistics();
+        if (isCheckedIn) {
+          await fetchOrderCount();
+          await fetchTodayStats();
+        }
+        await refreshCheckInStatus();
+      };
+      refreshData();
+    }, [isCheckedIn])
+  );
 
   const fetchStatistics = async () => {
     try {
@@ -93,13 +124,56 @@ const DashboardScreen = () => {
         return [2, 3, 4, 5, 6].includes(status);
       });
 
+      // Đếm các trạng thái đơn hàng cần thiết cho tính năng suất
+      const statusCounts = {
+        status4: 0,
+        status6: 0,
+        status7: 0,
+        status9: 0,
+        status14: 0,
+        status15: 0,
+      };
+
+      ordersArray.forEach(order => {
+        const status = parseInt(order.status);
+        switch (status) {
+          case 4:
+            statusCounts.status4++;
+            break;
+          case 6:
+            statusCounts.status6++;
+            break;
+          case 7:
+            statusCounts.status7++;
+            break;
+          case 9:
+            statusCounts.status9++;
+            break;
+          case 14:
+            statusCounts.status14++;
+            break;
+          case 15:
+            statusCounts.status15++;
+            break;
+        }
+      });
+
       // Lưu tổng số đơn hàng (bao gồm cả đã hoàn thành)
       setTotalOrders(ordersArray.length);
       setOrderCount(activeOrders.length);
+      setOrderStatusCounts(statusCounts);
     } catch (error) {
       console.error('❌ Error fetching order count:', error);
       setOrderCount(0);
       setTotalOrders(0);
+      setOrderStatusCounts({
+        status4: 0,
+        status6: 0,
+        status7: 0,
+        status9: 0,
+        status14: 0,
+        status15: 0,
+      });
     }
   };
 
@@ -108,14 +182,24 @@ const DashboardScreen = () => {
       if (!user?._id) return;
       const stats = await statisticsService.getTodayStatisticsByShipper(user._id);
 
-      // Tính năng suất: tỷ lệ đơn hàng hoàn thành (status 7) / tổng số đơn hàng
-      const completedOrders = stats?.totalTrips || 0;
-      const productivity = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+      // Tính năng suất theo công thức mới:
+      // Năng suất = (Số đơn hàng status 7 + 15) / (Số đơn hàng status 4, 6, 7, 9, 14, 15) × 100%
+      const numerator = orderStatusCounts.status7 + orderStatusCounts.status15; // Tử số: status 7 + 15
+      const denominator = orderStatusCounts.status4 + orderStatusCounts.status6 + 
+                         orderStatusCounts.status7 + orderStatusCounts.status9 + 
+                         orderStatusCounts.status14 + orderStatusCounts.status15; // Mẫu số: status 4, 6, 7, 9, 14, 15
+      
+      const productivity = denominator > 0 ? Math.round((numerator / denominator) * 100 * 100) / 100 : 0;
+
+      // Tính thu nhập theo công thức mới:
+      // Status 7: 7000 VND, Status 15: 5000 + 2000 = 7000 VND
+      const totalRevenue = (orderStatusCounts.status7 * 7000) + 
+                          (orderStatusCounts.status15 * 7000);
 
       setTodayStats({
         totalTrips: stats?.totalTrips || 0,
         productivity: productivity,
-        totalRevenue: stats?.totalRevenue || 0,
+        totalRevenue: totalRevenue,
       });
     } catch (error) {
       console.error('❌ Error fetching today stats:', error);
@@ -212,6 +296,7 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
+            <Text style={styles.bellIcon}>🔔</Text>
             <View style={styles.notificationBadge}>
               <Text style={styles.notificationBadgeText}>3</Text>
             </View>
@@ -231,7 +316,9 @@ const DashboardScreen = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Thống kê hôm nay</Text>
             <View style={[styles.checkInIndicator, {backgroundColor: isCheckedIn ? '#4CAF50' : '#FF5722'}]}>
-              <Icon name={isCheckedIn ? 'check-circle' : 'schedule'} size={16} color="white" />
+              <Text style={styles.checkInStatusIcon}>
+                {isCheckedIn ? '✓' : '⏰'}
+              </Text>
               <Text style={styles.checkInText}>{isCheckedIn ? 'Đã check-in' : 'Chưa check-in'}</Text>
             </View>
           </View>
@@ -250,15 +337,14 @@ const DashboardScreen = () => {
               <StatCard
                 title="Năng suất"
                 value={todayStats?.productivity || 0}
-                subtitle="% (Đã hoàn thành/Tổng số)"
+                subtitle="%"
                 color="#2196F3"
               />
             </View>
             <View style={{flex: 1}}>
               <StatCard
                 title="Thu nhập"
-                // value={formatCurrency(todayStats?.totalRevenue || 0)}
-                value={0}
+                value={todayStats?.totalRevenue || 0}
                 subtitle="VND"
                 color="#FF9800"
               />
@@ -323,32 +409,30 @@ const DashboardScreen = () => {
           </View>
         </View>
 
-        {/* Thống kê chi tiết */}
-        {statistics && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Thống kê chi tiết</Text>
-            <View style={styles.detailStatsContainer}>
-              <View style={styles.detailStatRow}>
-                <Text style={styles.detailStatLabel}>Đơn hàng tuần này:</Text>
-                <Text style={styles.detailStatValue}>
-                  {statistics?.this_week?.total_orders || 0}
-                </Text>
-              </View>
-              <View style={styles.detailStatRow}>
-                <Text style={styles.detailStatLabel}>Đơn hàng tháng này:</Text>
-                <Text style={styles.detailStatValue}>
-                  {statistics?.this_month?.total_orders || 0}
-                </Text>
-              </View>
-              <View style={styles.detailStatRow}>
-                <Text style={styles.detailStatLabel}>Doanh thu tháng:</Text>
-                <Text style={[styles.detailStatValue, {color: '#4CAF50'}]}>
-                  {formatCurrency(statistics?.this_month?.revenue || 0)}
-                </Text>
-              </View>
+        {/* Thống kê hôm nay */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Thống kê hôm nay</Text>
+          <View style={styles.detailStatsContainer}>
+            <View style={styles.detailStatRow}>
+              <Text style={styles.detailStatLabel}>Đơn hàng hoàn thành:</Text>
+              <Text style={[styles.detailStatValue, {color: '#4CAF50'}]}>
+                {orderStatusCounts.status7 || 0}
+              </Text>
+            </View>
+            <View style={styles.detailStatRow}>
+              <Text style={styles.detailStatLabel}>Đơn hàng hủy:</Text>
+              <Text style={[styles.detailStatValue, {color: '#F44336'}]}>
+                {orderStatusCounts.status9 || 0}
+              </Text>
+            </View>
+            <View style={styles.detailStatRow}>
+              <Text style={styles.detailStatLabel}>Đơn hàng hoàn đã nhận:</Text>
+              <Text style={[styles.detailStatValue, {color: '#2196F3'}]}>
+                {orderStatusCounts.status15 || 0}
+              </Text>
             </View>
           </View>
-        )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -363,8 +447,9 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 16, color: 'white', opacity: 0.9 },
   userName: { fontSize: 20, fontWeight: 'bold', color: 'white', marginTop: 5 },
   userInfo: { fontSize: 12, color: 'white', opacity: 0.8, marginTop: 3 },
-  notificationButton: { position: 'relative' },
-  notificationBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#FF3D71', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+  notificationButton: { position: 'relative', padding: 8 },
+  bellIcon: { fontSize: 24, color: 'white' },
+  notificationBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#FF3D71', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
   notificationBadgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
   content: { flex: 1, marginTop: -20 },
   section: { backgroundColor: 'white', marginHorizontal: 15, marginVertical: 10, borderRadius: 15, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
@@ -372,6 +457,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   checkInIndicator: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 15 },
   checkInText: { color: 'white', fontSize: 12, fontWeight: '500', marginLeft: 5 },
+  checkInStatusIcon: { fontSize: 16, color: 'white', marginRight: 5 },
   statsGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   statCard: { flex: 1, backgroundColor: '#fafafa', borderRadius: 12, padding: 15, marginHorizontal: 5, borderLeftWidth: 4 },
   statCardContent: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },

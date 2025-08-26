@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth} from '../../hooks/useAuth';
 import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
@@ -334,7 +334,7 @@ const CheckInScreen = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="white" />
+            <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Check In/Out</Text>
           <View style={styles.placeholder} />
@@ -346,7 +346,7 @@ const CheckInScreen = () => {
         <View style={styles.userCard}>
           <View style={styles.userInfo}>
             <View style={styles.avatarContainer}>
-              <Icon name="person" size={40} color="#FF6B35" />
+              <Text style={styles.avatarIcon}>👤</Text>
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.name}</Text>
@@ -372,7 +372,7 @@ const CheckInScreen = () => {
                 <TouchableOpacity 
                   style={styles.navButton} 
                   onPress={goToPreviousMonth}>
-                  <Icon name="chevron-left" size={24} color="#FF6B35" />
+                  <Text style={styles.navIcon}>‹</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -386,7 +386,7 @@ const CheckInScreen = () => {
                 <TouchableOpacity 
                   style={styles.navButton} 
                   onPress={goToNextMonth}>
-                  <Icon name="chevron-right" size={24} color="#FF6B35" />
+                  <Text style={styles.navIcon}>›</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -409,7 +409,7 @@ const CheckInScreen = () => {
         {isCheckedIn && (
           <View style={styles.checkInCard}>
             <View style={styles.checkInHeader}>
-              <Icon name="check-circle" size={24} color="#4CAF50" />
+              <Text style={styles.checkInIcon}>✓</Text>
               <Text style={[styles.checkInStatus, {color: '#4CAF50'}]}>
                 Đã Check-in hôm nay
               </Text>
@@ -440,11 +440,9 @@ const CheckInScreen = () => {
               <ActivityIndicator color="white" size="small" />
             ) : (
               <>
-                <Icon
-                  name="login"
-                  size={24}
-                  color={isCheckedIn ? '#999' : 'white'}
-                />
+                <Text style={[styles.buttonIcon, isCheckedIn && {color: '#999'}]}>
+                  {isCheckedIn ? '✓' : '→'}
+                </Text>
                 <Text style={[styles.buttonText, isCheckedIn && {color: '#999'}]}>
                   {isCheckedIn ? 'ĐÃ CHECK IN' : 'CHECK IN'}
                 </Text>
@@ -457,19 +455,19 @@ const CheckInScreen = () => {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Thông tin bổ sung</Text>
           <View style={styles.infoRow}>
-            <Icon name="location-on" size={16} color="#666" />
+            <Text style={styles.infoIcon}>📍</Text>
             <Text style={styles.infoText}>Khu vực giao hàng: {user?.address_shipping}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Icon name="business" size={16} color="#666" />
+            <Text style={styles.infoIcon}>🏢</Text>
             <Text style={styles.infoText}>Bưu cục: {user?.post_office_name}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Icon name="place" size={16} color="#666" />
+            <Text style={styles.infoIcon}>📍</Text>
             <Text style={styles.infoText}>Địa chỉ: {user?.post_office_address}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Icon name="assignment" size={16} color="#666" />
+            <Text style={styles.infoIcon}>📋</Text>
             <Text style={styles.infoText}>Đơn hàng đã làm: {user?.work?.length || 0}</Text>
           </View>
         </View>
@@ -495,6 +493,11 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 20,
@@ -534,6 +537,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+  },
+  avatarIcon: {
+    fontSize: 30,
   },
   userDetails: {
     flex: 1,
@@ -621,6 +627,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
+  },
+  navIcon: {
+    fontSize: 24,
+    color: '#FF6B35',
+    fontWeight: 'bold',
   },
   monthButton: {
     flex: 1,
@@ -713,10 +724,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
+  checkInIcon: {
+    fontSize: 24,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
   checkInStatus: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 10,
   },
   checkInInfo: {
     borderTopWidth: 1,
@@ -786,6 +802,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 10,
   },
+  buttonIcon: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+  },
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 15,
@@ -815,6 +836,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginLeft: 10,
+  },
+  infoIcon: {
+    fontSize: 16,
+    marginRight: 5,
   },
 });
 
