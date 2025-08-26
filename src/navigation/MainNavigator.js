@@ -10,6 +10,7 @@ import OrderListScreen from '../screens/orders/OrderListScreen';
 import OrderDetailScreen from '../screens/orders/OrderDetailScreen';
 import CreateOrderScreen from '../screens/orders/CreateOrderScreen';
 import MapTrackingScreen from '../screens/map/MapTrackingScreen';
+import MapScreen from '../screens/map/MapScreen';
 import HistoryScreen from '../screens/history/HistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ShipperInfoScreen from '../screens/profile/ShipperInfoScreen';
@@ -46,6 +47,15 @@ const ProfileNavigator = () => {
     <OrderStack.Navigator screenOptions={{headerShown: false}}>
       <OrderStack.Screen name="ProfileMain" component={ProfileScreen} />
       <OrderStack.Screen name="ShipperInfo" component={ShipperInfoScreen} />
+    </OrderStack.Navigator>
+  );
+};
+
+const MapNavigator = () => {
+  return (
+    <OrderStack.Navigator screenOptions={{headerShown: false}}>
+      <OrderStack.Screen name="MapTracking" component={MapScreen} />
+      <OrderStack.Screen name="MapScreen" component={MapScreen} />
     </OrderStack.Navigator>
   );
 };
@@ -107,7 +117,7 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Map"
-        component={MapTrackingScreen}
+        component={MapNavigator}
         options={{
           tabBarLabel: 'Bản đồ',
         }}
