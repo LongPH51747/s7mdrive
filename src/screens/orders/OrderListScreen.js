@@ -102,6 +102,28 @@ const OrderListScreen = () => {
           console.log(`🔄 Order ${order._id}: status=${status}, isValid=${isValidStatus}`);
           return isValidStatus;
         });
+        
+        // Sắp xếp đơn hàng: trạng thái 6 (đang giao) luôn ở trên cùng
+        console.log('🔄 Sắp xếp đơn hàng: Trạng thái 6 (đang giao) sẽ hiển thị trên cùng');
+        filteredOrders.sort((a, b) => {
+          const statusA = parseInt(a.status);
+          const statusB = parseInt(b.status);
+          
+          // Đơn hàng trạng thái 6 (đang giao) luôn ở trên cùng
+          if (statusA === 6 && statusB !== 6) return -1;
+          if (statusA !== 6 && statusB === 6) return 1;
+          
+          // Các đơn hàng khác sắp xếp theo thời gian tạo (mới nhất lên trên)
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          return timeB - timeA;
+        });
+        
+        console.log('🔄 Đơn hàng sau khi sắp xếp:', filteredOrders.map(order => ({
+          id: order._id,
+          status: order.status,
+          createdAt: order.createdAt
+        })));
       } else {
         // Tab "Đơn nhận": trạng thái 14, 15
         console.log('🔄 fetchOrdersByArea: Đang lọc cho tab "Đơn nhận" (status: 14,15)');
@@ -110,6 +132,13 @@ const OrderListScreen = () => {
           const isValidStatus = status === 14 || status === 15;
           console.log(`🔄 Order ${order._id}: status=${status}, isValid=${isValidStatus}`);
           return isValidStatus;
+        });
+        
+        // Sắp xếp đơn hàng nhận theo thời gian tạo (mới nhất lên trên)
+        filteredOrders.sort((a, b) => {
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          return timeB - timeA;
         });
       }
       
@@ -184,7 +213,7 @@ const OrderListScreen = () => {
       5: 'Shipper nhận hàng',
       6: 'Đang giao',
       7: 'Giao thành công',
-      9: 'Đơn hàng mới',
+      9: 'Đơn hàng đã hủy',
       14: 'Hoàn hàng',
       15: 'Đơn hàng đã nhận'
     };
@@ -457,24 +486,99 @@ const OrderListScreen = () => {
                   );
                 } else {
                   console.error('❌ Lỗi khi nhận tất cả đơn hàng:', result.message);
-                  console.error('❌ Error details:', result.error);
-                  console.error('❌ Status code:', result.status);
-                  
                   Alert.alert('Lỗi', `Không thể nhận tất cả đơn hàng: ${result.message}`);
                 }
               } catch (error) {
-                console.error('❌ Lỗi khi nhận tất cả đơn hàng:', error);
+                console.error('❌ Lỗi không mong muốn khi nhận tất cả đơn hàng:', error);
                 Alert.alert('Lỗi', 'Có lỗi xảy ra khi nhận tất cả đơn hàng');
               } finally {
                 setProcessingOrder(null);
               }
             },
           },
-        ]
+        ],
       );
     } catch (error) {
-      console.error('❌ Lỗi không mong muốn:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+      console.error('❌ Lỗi khi xử lý nhận tất cả đơn hàng:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi xử lý nhận tất cả đơn hàng');
+    }
+  };
+
+  // Hàm cập nhật trạng thái đơn hàng từ 6 thành 9 (Button X)
+  const handleUpdateStatusTo9 = async (orderId) => {
+    try {
+      console.log('❌ OrderListScreen: Bắt đầu cập nhật trạng thái đơn hàng từ 6 thành 9:', orderId);
+      setProcessingOrder(orderId);
+      
+      // Gọi API cập nhật trạng thái đơn hàng thông qua orderService
+      const result = await orderService.updateOrderStatusTo9(orderId);
+      
+      console.log('❌ OrderListScreen: Kết quả từ orderService:', result);
+      
+      if (result.success) {
+        console.log('✅ Cập nhật trạng thái đơn hàng thành công:', result.data);
+        
+        Alert.alert(
+          'Thành công',
+          'Đã cập nhật trạng thái đơn hàng thành công!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Refresh danh sách đơn hàng
+                fetchOrdersByArea();
+              }
+            }
+          ]
+        );
+      } else {
+        console.error('❌ Lỗi khi cập nhật trạng thái đơn hàng:', result.message);
+        Alert.alert('Lỗi', `Không thể cập nhật trạng thái đơn hàng: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Lỗi không mong muốn khi cập nhật trạng thái đơn hàng:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
+
+  // Hàm cập nhật trạng thái đơn hàng từ 14 thành 15 (Button X cho đơn nhận)
+  const handleUpdateStatusTo15 = async (orderId) => {
+    try {
+      console.log('❌ OrderListScreen: Bắt đầu cập nhật trạng thái đơn hàng từ 14 thành 15:', orderId);
+      setProcessingOrder(orderId);
+      
+      // Gọi API cập nhật trạng thái đơn hàng thông qua orderService
+      const result = await orderService.updateOrderStatusTo15(orderId);
+      
+      console.log('❌ OrderListScreen: Kết quả từ orderService:', result);
+      
+      if (result.success) {
+        console.log('✅ Cập nhật trạng thái đơn hàng thành công:', result.data);
+        
+        Alert.alert(
+          'Thành công',
+          'Đã cập nhật trạng thái đơn hàng thành công!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Refresh danh sách đơn hàng
+                fetchOrdersByArea();
+              }
+            }
+          ]
+        );
+      } else {
+        console.error('❌ Lỗi khi cập nhật trạng thái đơn hàng:', result.message);
+        Alert.alert('Lỗi', `Không thể cập nhật trạng thái đơn hàng: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Lỗi không mong muốn khi cập nhật trạng thái đơn hàng:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
+    } finally {
+      setProcessingOrder(null);
     }
   };
 
@@ -591,10 +695,15 @@ const OrderListScreen = () => {
         {isStatus6 && (
           <View style={styles.status6Buttons}>
             <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => handleCancelOrder(item._id)}
+              style={[styles.xButton, processingOrder === item._id && styles.xButtonDisabled]}
+              onPress={() => handleUpdateStatusTo9(item._id)}
+              disabled={processingOrder === item._id}
             >
-              <Text style={styles.cancelButtonText}>❌</Text>
+              {processingOrder === item._id ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.xButtonText}>X</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -618,18 +727,18 @@ const OrderListScreen = () => {
           </View>
         )}
 
-        {/* Button "Nhận hàng" cho đơn hàng trạng thái 14 */}
+        {/* Button X cho đơn hàng trạng thái 14 */}
         {isStatus14 && (
           <TouchableOpacity 
-            style={styles.receiveItemButton}
-            onPress={() => {
-              console.log('Nhận hàng cho đơn hàng:', item._id);
-              // TODO: Implement receive item functionality
-              Alert.alert('Thông báo', 'Chức năng nhận hàng sẽ được cập nhật sau');
-            }}
+            style={[styles.xButton, processingOrder === item._id && styles.xButtonDisabled]}
+            onPress={() => handleUpdateStatusTo15(item._id)}
+            disabled={processingOrder === item._id}
           >
-            <Text style={styles.receiveItemButtonText}>📦</Text>
-            <Text style={styles.receiveItemButtonText}>Nhận hàng</Text>
+            {processingOrder === item._id ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.xButtonText}>X</Text>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -726,6 +835,11 @@ const OrderListScreen = () => {
                    : `Tổng cộng: ${orders.length} đơn hàng nhận`
                  }
                </Text>
+               {activeTab === 'delivery' && orders.length > 0 && (
+                 <Text style={styles.listHeaderSubtitle}>
+                   📍 Đơn hàng đang giao (trạng thái 6) hiển thị trên cùng
+                 </Text>
+               )}
              </View>
            }
         />
@@ -805,6 +919,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  listHeaderSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   orderItem: {
     backgroundColor: 'white',
@@ -1020,7 +1141,7 @@ const styles = StyleSheet.create({
      justifyContent: 'space-between',
      marginTop: 10,
      paddingHorizontal: 10,
-     gap: 15,
+     gap: 10,
    },
    cancelButton: {
      backgroundColor: '#FFCDD2', // Light red background
@@ -1186,6 +1307,32 @@ const styles = StyleSheet.create({
      marginTop: 10,
    },
    receiveItemButtonText: {
+     color: 'white',
+     fontSize: 12,
+     fontWeight: 'bold',
+     marginLeft: 4,
+   },
+   xButton: {
+     backgroundColor: '#FF6B6B', // Light red background
+     alignItems: 'center',
+     justifyContent: 'center',
+     width: 55,
+     height: 38,
+     borderRadius: 19,
+     shadowColor: '#000',
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.1,
+     shadowRadius: 3,
+     elevation: 2,
+   },
+   xButtonDisabled: {
+     backgroundColor: '#ccc',
+     opacity: 0.7,
+   },
+   xButtonText: {
      color: 'white',
      fontSize: 12,
      fontWeight: 'bold',

@@ -308,6 +308,88 @@ class OrderService {
       };
     }
   }
+
+  // Cập nhật trạng thái đơn hàng từ 6 thành 9 (Button X)
+  async updateOrderStatusTo9(orderId) {
+    try {
+      console.log('❌ OrderService: Bắt đầu cập nhật trạng thái đơn hàng từ 6 thành 9:', orderId);
+      
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_UPDATE_STATUS}/${orderId}`;
+      
+      console.log('❌ OrderService: URL API:', url);
+      console.log('❌ OrderService: Request body:', { status: 9 });
+      
+      const response = await axios.patch(url, {
+        status: 9
+      }, {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('❌ OrderService: Response thành công:', response.data);
+      
+      return {
+        success: true,
+        data: response.data,
+        message: 'Cập nhật trạng thái đơn hàng thành công'
+      };
+    } catch (error) {
+      console.error('❌ OrderService: Lỗi khi cập nhật trạng thái đơn hàng:', error);
+      console.error('❌ OrderService: Error response:', error.response?.data);
+      console.error('❌ OrderService: Error status:', error.response?.status);
+      console.error('❌ OrderService: Error message:', error.message);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng',
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+  }
+
+  // Cập nhật trạng thái đơn hàng từ 14 thành 15 (Button X cho đơn nhận)
+  async updateOrderStatusTo15(orderId) {
+    try {
+      console.log('❌ OrderService: Bắt đầu cập nhật trạng thái đơn hàng từ 14 thành 15:', orderId);
+      
+      const url = `${getExternalApiUrl()}${API_CONFIG.ENDPOINTS.ORDER_UPDATE_STATUS}/${orderId}`;
+      
+      console.log('❌ OrderService: URL API:', url);
+      console.log('❌ OrderService: Request body:', { status: 15 });
+      
+      const response = await axios.patch(url, {
+        status: 15
+      }, {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('❌ OrderService: Response thành công:', response.data);
+      
+      return {
+        success: true,
+        data: response.data,
+        message: 'Cập nhật trạng thái đơn hàng thành công'
+      };
+    } catch (error) {
+      console.error('❌ OrderService: Lỗi khi cập nhật trạng thái đơn hàng:', error);
+      console.error('❌ OrderService: Error response:', error.response?.data);
+      console.error('❌ OrderService: Error status:', error.response?.status);
+      console.error('❌ OrderService: Error message:', error.message);
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng',
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+  }
 }
 
 export default new OrderService();

@@ -66,8 +66,9 @@ export const getWorkHistoryByShipper = async (shipperId) => {
 // Kiểm tra xem shipper đã check-in hôm nay chưa
 export const hasCheckedInToday = async (shipperId) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    console.log('🔍 Kiểm tra check-in hôm nay:', today);
+    // Sử dụng timezone của Việt Nam
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }); // YYYY-MM-DD
+    console.log('🔍 Kiểm tra check-in hôm nay (VN timezone):', today);
     
     const historyResponse = await getWorkHistoryByShipper(shipperId);
     if (!historyResponse.success) {
@@ -75,7 +76,9 @@ export const hasCheckedInToday = async (shipperId) => {
     }
     
     const todayCheckIn = historyResponse.data.find(work => {
-      const workDate = new Date(work.createdAt).toISOString().split('T')[0];
+      // Chuyển đổi createdAt sang timezone Việt Nam
+      const workDate = new Date(work.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+      console.log('🔍 So sánh ngày:', workDate, 'với', today, '=', workDate === today);
       return workDate === today;
     });
     
@@ -115,9 +118,13 @@ export const getCheckedInDaysInMonth = async (shipperId, year, month) => {
       })
       .map(work => new Date(work.createdAt).getDate());
     
-    console.log('📅 Các ngày đã check-in trong tháng:', checkedInDays);
+    // Loại bỏ duplicate dates bằng Set
+    const uniqueCheckedInDays = [...new Set(checkedInDays)].sort((a, b) => a - b);
     
-    return checkedInDays;
+    console.log('📅 Các ngày đã check-in trong tháng (có duplicate):', checkedInDays);
+    console.log('📅 Các ngày đã check-in trong tháng (đã loại bỏ duplicate):', uniqueCheckedInDays);
+    
+    return uniqueCheckedInDays;
   } catch (error) {
     console.error('❌ Lỗi khi lấy danh sách ngày check-in:', error);
     return [];

@@ -16,7 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
 import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
-import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
+// import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
 import {hasCheckedInToday, getCheckedInDaysInMonth, createWorkRecord} from '../../services/workService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -143,110 +143,82 @@ const CheckInScreen = () => {
     console.log('📅 Về tháng hiện tại');
   };
 
+  // Hàm xử lý check-in
   const handleCheckIn = async () => {
-    console.log('🚀 === BẮT ĐẦU QUÁ TRÌNH CHECK-IN ===');
-    console.log('🚀 Thời gian bắt đầu:', new Date().toLocaleString('vi-VN'));
-    console.log('🚀 Thông tin user:', {
-      id: user?.id,
-      name: user?.name,
-      post_office_name: user?.post_office_name,
-      post_office_address: user?.post_office_address
-    });
-    
-    setLoading(true);
     try {
-      // Kiểm tra khoảng cách đến bưu cục
-      console.log('🚀 Đang kiểm tra khoảng cách...');
-      console.log('🚀 Thông tin bưu cục từ user:', {
-        post_office_name: user?.post_office_name,
-        post_office_address: user?.post_office_address,
-        post_office_latitude: user?.post_office_latitude,
-        post_office_longitude: user?.post_office_longitude
-      });
+      console.log('🚀 Bắt đầu quá trình check-in...');
+      setLoading(true);
       
-      const locationResult = await checkDistanceToPostOfficeWithUserData(user);
-      console.log('🚀 Kết quả kiểm tra khoảng cách:', locationResult);
-      
-      if (!locationResult.success) {
-        console.log('❌ Kiểm tra khoảng cách thất bại:', locationResult.error);
-        Alert.alert(
-          'Lỗi vị trí',
-          locationResult.error === 'Không có quyền truy cập vị trí' 
-            ? 'Ứng dụng cần quyền truy cập vị trí để check-in. Vui lòng cấp quyền trong cài đặt.'
-            : locationResult.error,
-          [{text: 'OK'}]
-        );
+      // Kiểm tra xem đã check-in hôm nay chưa
+      if (isCheckedIn) {
+        Alert.alert('Thông báo', 'Bạn đã check-in hôm nay rồi!');
         setLoading(false);
         return;
       }
 
-      // Kiểm tra khoảng cách (100m)
-      console.log('🚀 Kiểm tra phạm vi cho phép...');
-      console.log('🚀 Khoảng cách hiện tại:', locationResult.distance.toFixed(2), 'm');
-      console.log('🚀 Phạm vi cho phép:', '100m');
-      console.log('🚀 Có trong phạm vi không:', locationResult.isWithinRange ? '✅ CÓ' : '❌ KHÔNG');
-      
-      if (!locationResult.isWithinRange) {
-        console.log('❌ Khoảng cách quá xa, không thể check-in');
-        Alert.alert(
-          'Khoảng cách quá xa',
-          `Bạn đang cách bưu cục ${locationResult.distance.toFixed(0)}m. Vui lòng đến gần bưu cục hơn để check-in (trong phạm vi 100m).`,
-          [{text: 'OK'}]
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Lưu check-in vào database
-      console.log('🚀 Khoảng cách hợp lệ, đang lưu check-in...');
-      
-      const checkInTime = new Date();
-      
-      console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
-      
-      const saveResult = await createWorkRecord(user?.id);
-      
-      if (!saveResult.success) {
-        throw new Error(`Lỗi khi lưu check-in: ${saveResult.error}`);
-      }
-      
-      console.log('🚀 Thời gian check-in:', checkInTime.toLocaleString('vi-VN'));
-      
-      setIsCheckedIn(true);
-      
-      // Cập nhật danh sách ngày đã check-in
-      const today = new Date();
-      const newCheckedInDays = [...checkedInDays, today.getDate()];
-      setCheckedInDays(newCheckedInDays);
-      
-      // Lưu ngày check-in vào AsyncStorage
-      await AsyncStorage.setItem('lastCheckInDate', new Date().toISOString().split('T')[0]);
-      
-      // Reload dữ liệu từ API
-      await loadCheckedInDays();
-      
-      // Refresh trạng thái check-in trong hook
-      refreshCheckInStatus();
-      
-      console.log('✅ Check-in thành công!');
-      console.log('✅ Thông tin check-in:');
-      console.log('   - Thời gian:', checkInTime.toLocaleString('vi-VN'));
-      console.log('   - Địa điểm:', locationResult.postOffice.address);
-      console.log('   - Khoảng cách:', locationResult.distance.toFixed(2), 'm');
-      console.log('   - Work record ID:', saveResult.data?.id || 'Tạm thời');
-      
+      // Hiển thị xác nhận check-in
       Alert.alert(
-        'Check-in thành công!',
-        `Bạn đã check-in thành công tại ${locationResult.postOffice.name} (${locationResult.postOffice.address}). Chúc bạn một ngày làm việc hiệu quả!`,
-        [{text: 'OK'}]
+        'Xác nhận Check-in',
+        'Bạn có chắc chắn muốn check-in hôm nay?',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+            onPress: () => {
+              console.log('❌ User hủy check-in');
+              setLoading(false);
+            }
+          },
+          {
+            text: 'Check-in',
+            onPress: async () => {
+              try {
+                console.log('✅ User xác nhận check-in');
+                
+                // Gọi API tạo work record
+                console.log('📝 Gọi API tạo work record...');
+                const result = await createWorkRecord(user.id);
+                
+                if (result.success) {
+                  console.log('✅ Tạo work record thành công:', result.data);
+                  
+                  // Cập nhật trạng thái local
+                  setIsCheckedIn(true);
+                  
+                  // Lưu ngày check-in vào AsyncStorage
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  await AsyncStorage.setItem('lastCheckInDate', todayStr);
+                  
+                  // Refresh trạng thái check-in
+                  await refreshCheckInStatus();
+                  
+                  // Hiển thị thông báo thành công giống như chức năng cũ
+                  Alert.alert(
+                    'Check-in thành công!',
+                    `Bạn đã check-in thành công tại ${user?.post_office_name || 'bưu cục'} (${user?.post_office_address || 'địa chỉ bưu cục'}). Chúc bạn một ngày làm việc hiệu quả!`,
+                    [{text: 'OK'}]
+                  );
+                  
+                  console.log('✅ Check-in hoàn tất thành công!');
+                } else {
+                  console.error('❌ Lỗi khi tạo work record:', result.message);
+                  Alert.alert('Lỗi', `Không thể check-in: ${result.message}`);
+                }
+              } catch (error) {
+                console.error('❌ Lỗi không mong muốn khi check-in:', error);
+                Alert.alert('Lỗi', 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.');
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        ]
       );
+      
     } catch (error) {
-      console.error('❌ Lỗi khi check-in:', error);
-      console.error('❌ Stack trace:', error.stack);
-      Alert.alert('Lỗi', 'Không thể check-in. Vui lòng thử lại.');
-    } finally {
+      console.error('❌ Lỗi trong handleCheckIn:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi xử lý check-in');
       setLoading(false);
-      console.log('🚀 === KẾT THÚC QUÁ TRÌNH CHECK-IN ===\n');
     }
   };
 
@@ -470,6 +442,15 @@ const CheckInScreen = () => {
             <Text style={styles.infoIcon}>📋</Text>
             <Text style={styles.infoText}>Đơn hàng đã làm: {user?.work?.length || 0}</Text>
           </View>
+        </View>
+
+        {/* Thông báo về check-in đơn giản */}
+        <View style={styles.simpleCheckInCard}>
+          <Text style={styles.simpleCheckInTitle}>ℹ️ Check-in đơn giản</Text>
+          <Text style={styles.simpleCheckInText}>
+            Chức năng check-in hiện tại hoạt động dựa trên sự tin tưởng. 
+            Bạn chỉ cần xác nhận để check-in mà không cần kiểm tra vị trí GPS.
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -840,6 +821,25 @@ const styles = StyleSheet.create({
   infoIcon: {
     fontSize: 16,
     marginRight: 5,
+  },
+  simpleCheckInCard: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 15,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  simpleCheckInTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
+    marginBottom: 8,
+  },
+  simpleCheckInText: {
+    fontSize: 14,
+    color: '#424242',
+    lineHeight: 20,
   },
 });
 
