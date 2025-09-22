@@ -141,12 +141,7 @@ const LoginScreen = () => {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Demo accounts */}
-          <View style={styles.demoContainer}>
-            <Text style={styles.demoTitle}>Tài khoản demo:</Text>
-            <Text style={styles.demoText}>Admin: admin / 123456</Text>
-            <Text style={styles.demoText}>Shipper: shipper1 / 123456</Text>
-          </View>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -274,23 +269,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
   },
-  demoContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  demoText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 3,
-  },
+
 });
 
 export default LoginScreen;

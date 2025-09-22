@@ -5,7 +5,7 @@ export const API_CONFIG = {
   // Cho simulator/emulator
   LOCAL_URL: 'http://localhost:3000',
   // URL cho API bên ngoài
-  BASE_URL_EXTERNAL: 'https://edf052525cbf.ngrok-free.app',
+  BASE_URL_EXTERNAL: 'https://s7mbackend-production.up.railway.app',
 
   // Endpoints
   ENDPOINTS: {
