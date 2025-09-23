@@ -1,5 +1,6 @@
 import {externalApiClient} from './apiClient';
 import {API_CONFIG} from '../constants/api';
+import {getCurrentLocation} from './locationService';
 
 // Tạo work record mới khi shipper check-in
 export const createWorkRecord = async (shipperId) => {
@@ -173,10 +174,32 @@ export const getCheckInStatistics = async (shipperId) => {
   }
 };
 
-// Xác nhận đơn hàng hoàn thành với ảnh
+// Xác nhận đơn hàng hoàn thành với ảnh (tự động lấy tọa độ)
 export const confirmOrderSuccess = async (shipperId, orderId, imageUri) => {
   try {
-    console.log('📸 Xác nhận đơn hàng hoàn thành:', {shipperId, orderId});
+    console.log('📍 Lấy vị trí hiện tại để xác nhận đơn hàng...');
+    
+    // Lấy vị trí hiện tại
+    const location = await getCurrentLocation();
+    const latitude = location.latitude;
+    const longitude = location.longitude;
+    
+    console.log('📍 Vị trí hiện tại:', { latitude, longitude });
+    
+    return await confirmOrderSuccessWithLocation(shipperId, orderId, imageUri, latitude, longitude);
+  } catch (error) {
+    console.error('❌ Lỗi khi lấy vị trí:', error);
+    return {
+      success: false,
+      error: 'Không thể lấy vị trí hiện tại: ' + error.message
+    };
+  }
+};
+
+// Xác nhận đơn hàng hoàn thành với ảnh và tọa độ (hàm internal)
+export const confirmOrderSuccessWithLocation = async (shipperId, orderId, imageUri, latitude, longitude) => {
+  try {
+    console.log('📸 Xác nhận đơn hàng hoàn thành:', {shipperId, orderId, latitude, longitude});
     console.log('📸 Image URI:', imageUri);
     
     // Tạo FormData
@@ -187,6 +210,8 @@ export const confirmOrderSuccess = async (shipperId, orderId, imageUri) => {
       type: 'image/jpeg',
       name: 'image.jpg'
     });
+    formData.append('latitude', latitude.toString());
+    formData.append('longitude', longitude.toString());
     
     // Log URL API
     const apiUrl = `${API_CONFIG.BASE_URL_EXTERNAL}${API_CONFIG.ENDPOINTS.WORK_ORDER_SUCCESS}/${shipperId}`;
@@ -196,6 +221,8 @@ export const confirmOrderSuccess = async (shipperId, orderId, imageUri) => {
     console.log('🌐 Shipper ID:', shipperId);
     console.log('📤 FormData content:');
     console.log('   - id_order:', orderId);
+    console.log('   - latitude:', latitude);
+    console.log('   - longitude:', longitude);
     console.log('   - image:', {
       uri: imageUri,
       type: 'image/jpeg',

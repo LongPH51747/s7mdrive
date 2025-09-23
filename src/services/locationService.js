@@ -1,5 +1,5 @@
-import Geolocation from 'react-native-geolocation-service';
 import {PermissionsAndroid, Platform, Alert} from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 
 // Dữ liệu post_office từ db.json
 const postOffices = [
@@ -17,19 +17,6 @@ export const requestLocationPermission = async () => {
   console.log('🔐 Bắt đầu xin quyền truy cập vị trí...');
   console.log('🔐 Platform:', Platform.OS);
   
-  if (Platform.OS === 'ios') {
-    console.log('🔐 Đang xin quyền trên iOS...');
-    const auth = await Geolocation.requestAuthorization('whenInUse');
-    console.log('🔐 Kết quả quyền iOS:', auth);
-    
-    if (auth === 'granted') {
-      console.log('✅ Quyền iOS đã được cấp');
-      return true;
-    } else {
-      console.log('❌ Quyền iOS bị từ chối:', auth);
-    }
-  }
-
   if (Platform.OS === 'android') {
     console.log('🔐 Đang xin quyền trên Android...');
     console.log('🔐 Quyền yêu cầu:', PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
@@ -59,6 +46,10 @@ export const requestLocationPermission = async () => {
     } else if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
       console.log('❌ Quyền Android bị từ chối vĩnh viễn');
     }
+  } else {
+    // iOS - @react-native-community/geolocation tự động xin quyền
+    console.log('🔐 iOS - Sử dụng @react-native-community/geolocation');
+    return true;
   }
   
   console.log('❌ Không có quyền truy cập vị trí');
@@ -135,14 +126,11 @@ export const getCurrentLocation = () => {
         console.error('📍 Mã lỗi:', error.code);
         console.error('📍 Thông báo lỗi:', error.message);
         
-        // Giải thích mã lỗi
+        // Giải thích mã lỗi cho @react-native-community/geolocation
         const errorMessages = {
           1: 'PERMISSION_DENIED - Người dùng từ chối quyền truy cập vị trí',
           2: 'POSITION_UNAVAILABLE - Không thể xác định vị trí',
-          3: 'TIMEOUT - Hết thời gian chờ lấy vị trí',
-          4: 'PLAY_SERVICE_NOT_AVAILABLE - Google Play Services không khả dụng (Android)',
-          5: 'SETTINGS_NOT_SATISFIED - Cài đặt vị trí không thỏa mãn',
-          6: 'INTERNAL_ERROR - Lỗi nội bộ'
+          3: 'TIMEOUT - Hết thời gian chờ lấy vị trí'
         };
         
         console.error('📍 Giải thích lỗi:', errorMessages[error.code] || 'Lỗi không xác định');
@@ -323,7 +311,7 @@ export const checkDistanceToPostOffice = async (userId) => {
       distance: distance,
       currentLocation: currentLocation,
       postOffice: userPostOffice,
-      isWithinRange: distance <= 20000000
+      isWithinRange: distance <= 100
     };
     // ++++========================================================================+++++++++++++=======================
     console.log('✅ Kết quả cuối cùng:', result);

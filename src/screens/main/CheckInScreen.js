@@ -16,7 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
 import {useCheckIn} from '../../hooks/useCheckIn';
 import {useNavigation} from '@react-navigation/native';
-// import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
+import {checkDistanceToPostOfficeWithUserData} from '../../services/locationService';
 import {hasCheckedInToday, getCheckedInDaysInMonth, createWorkRecord} from '../../services/workService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -156,10 +156,50 @@ const CheckInScreen = () => {
         return;
       }
 
-      // Hiển thị xác nhận check-in
+      // Kiểm tra vị trí GPS trước khi cho phép check-in
+      console.log('📍 Bắt đầu kiểm tra vị trí GPS...');
+      const locationResult = await checkDistanceToPostOfficeWithUserData(user);
+      
+      if (!locationResult.success) {
+        console.error('❌ Lỗi khi kiểm tra vị trí:', locationResult.error);
+        Alert.alert(
+          'Lỗi vị trí', 
+          `Không thể xác định vị trí: ${locationResult.error}\n\nVui lòng kiểm tra:\n- Quyền truy cập vị trí\n- GPS đã bật\n- Kết nối mạng`,
+          [{text: 'OK'}]
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (!locationResult.isWithinRange) {
+        console.log('❌ Shipper không trong phạm vi bưu cục');
+        const distance = Math.round(locationResult.distance);
+        Alert.alert(
+          'Không trong phạm vi',
+          `Bạn đang cách bưu cục ${distance}m.\n\nVui lòng di chuyển đến gần bưu cục (trong vòng 100m) để có thể check-in.`,
+          [
+            {
+              text: 'Xem vị trí',
+              onPress: () => {
+                const mapsUrl = `https://www.google.com/maps?q=${locationResult.postOffice.latitude},${locationResult.postOffice.longitude}`;
+                console.log('🗺️ Link Google Maps bưu cục:', mapsUrl);
+                // Có thể mở Google Maps ở đây nếu cần
+              }
+            },
+            {text: 'OK'}
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Shipper trong phạm vi bưu cục, cho phép check-in');
+      const distance = Math.round(locationResult.distance);
+
+      // Hiển thị xác nhận check-in với thông tin vị trí
       Alert.alert(
         'Xác nhận Check-in',
-        'Bạn có chắc chắn muốn check-in hôm nay?',
+        `Bạn đang ở vị trí cách bưu cục ${distance}m.\n\nBạn có chắc chắn muốn check-in hôm nay?`,
         [
           {
             text: 'Hủy',
@@ -192,10 +232,10 @@ const CheckInScreen = () => {
                   // Refresh trạng thái check-in
                   await refreshCheckInStatus();
                   
-                  // Hiển thị thông báo thành công giống như chức năng cũ
+                  // Hiển thị thông báo thành công với thông tin vị trí
                   Alert.alert(
                     'Check-in thành công!',
-                    `Bạn đã check-in thành công tại ${user?.post_office_name || 'bưu cục'} (${user?.post_office_address || 'địa chỉ bưu cục'}). Chúc bạn một ngày làm việc hiệu quả!`,
+                    `Bạn đã check-in thành công tại ${user?.post_office_name || 'bưu cục'}.\n\nVị trí: Cách bưu cục ${distance}m\nĐịa chỉ: ${user?.post_office_address || 'địa chỉ bưu cục'}\n\nChúc bạn một ngày làm việc hiệu quả!`,
                     [{text: 'OK'}]
                   );
                   
@@ -444,13 +484,18 @@ const CheckInScreen = () => {
           </View>
         </View>
 
-        {/* Thông báo về check-in đơn giản */}
-        <View style={styles.simpleCheckInCard}>
-          <Text style={styles.simpleCheckInTitle}>ℹ️ Check-in đơn giản</Text>
-          <Text style={styles.simpleCheckInText}>
-            Chức năng check-in hiện tại hoạt động dựa trên sự tin tưởng. 
-            Bạn chỉ cần xác nhận để check-in mà không cần kiểm tra vị trí GPS.
+        {/* Thông báo về kiểm tra vị trí GPS */}
+        <View style={styles.locationCheckCard}>
+          <Text style={styles.locationCheckTitle}>📍 Kiểm tra vị trí GPS</Text>
+          <Text style={styles.locationCheckText}>
+            Để check-in, bạn cần ở trong phạm vi 100m từ bưu cục. 
+            Ứng dụng sẽ tự động kiểm tra vị trí GPS của bạn khi nhấn nút Check-in.
           </Text>
+          <View style={styles.locationRequirements}>
+            <Text style={styles.requirementText}>• Bật GPS và cho phép truy cập vị trí</Text>
+            <Text style={styles.requirementText}>• Đứng trong phạm vi 100m từ bưu cục</Text>
+            <Text style={styles.requirementText}>• Có kết nối mạng ổn định</Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -822,24 +867,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 5,
   },
-  simpleCheckInCard: {
-    backgroundColor: '#E3F2FD',
+  locationCheckCard: {
+    backgroundColor: '#E8F5E8',
     borderRadius: 15,
     padding: 16,
     marginTop: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderLeftColor: '#4CAF50',
   },
-  simpleCheckInTitle: {
+  locationCheckTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#2E7D32',
     marginBottom: 8,
   },
-  simpleCheckInText: {
+  locationCheckText: {
     fontSize: 14,
     color: '#424242',
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  locationRequirements: {
+    marginTop: 8,
+  },
+  requirementText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    marginBottom: 4,
+    fontWeight: '500',
   },
 });
 
